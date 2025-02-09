@@ -14,7 +14,8 @@ namespace ap.nexus.agents.application.Extensions
 
             // Register application services.
             services.AddScoped<IAgentService, AgentService>();
-            services.AddScoped<IMessageService, AgentService>();
+            services.AddScoped<IThreadService, ThreadService>();
+            //services.AddScoped<IMessageService, ThreadService>();
             services.AddSingleton<IChatHistoryManager, ChatHistoryManager>();
 
             return services;
