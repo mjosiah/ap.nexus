@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion; // For ChatHistory, ChatMessageContent, AuthorRole
@@ -97,7 +93,7 @@ namespace ap.nexus.agents.application.Services
             var chatHistory = new ChatHistory();
             foreach (var storedMessage in storedMessages)
             {
-                bool isUser = storedMessage.Role.Equals("User", StringComparison.OrdinalIgnoreCase);
+                bool isUser = storedMessage.Role.Label.Equals("User", StringComparison.OrdinalIgnoreCase);
                 // Since ChatHistory's AddUserMessage/AddAssistantMessage return void, create the message manually.
                 chatHistory.Add(CreateChatMessageContent(storedMessage.Content, isUser));
             }
