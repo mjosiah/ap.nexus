@@ -10,7 +10,9 @@ namespace ap.nexus.agents.infrastructure.Data
         {
         }
 
-        public DbSet<Agent> Agents { get; set; } = null!;
+        public DbSet<Agent> Agents { get; set; }
+        public DbSet<ChatThread> ChatThreads { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
