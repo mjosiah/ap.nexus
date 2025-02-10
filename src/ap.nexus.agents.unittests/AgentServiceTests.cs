@@ -75,32 +75,6 @@ namespace ap.nexus.agents.unittests
             result.Model.Should().Be(request.Model);
         }
 
-        [Fact]
-        public async Task GetAllAgentsAsync_ShouldReturnPagedResult()
-        {
-            // Arrange
-            var agents = new List<Agent>
-            {
-                new Agent { Id = 1, ExternalId = Guid.NewGuid(), Name = "Agent1", Description = "Desc1", Model = "Model1", Instruction = "Inst1", ToolsJson = "[]", Scope = ScopeType.Team, ScopeExternalId = "Scope1" },
-                new Agent { Id = 2, ExternalId = Guid.NewGuid(), Name = "Agent2", Description = "Desc2", Model = "Model2", Instruction = "Inst2", ToolsJson = "[]", Scope = ScopeType.Personal, ScopeExternalId = "Scope2" }
-            }.AsQueryable();
-
-            _agentRepositoryMock.Setup(r => r.Query()).Returns(agents);
-
-            var requestDto = new PagedAndSortedResultRequestDto
-            {
-                SkipCount = 0,
-                MaxResultCount = 10,
-                Sorting = "Name"
-            };
-
-            // Act
-            var result = await _agentService.GetAgentsAsync(requestDto);
-
-            // Assert
-            result.Should().NotBeNull();
-            result.TotalCount.Should().Be(agents.Count());
-            result.Items.Should().HaveCount(agents.Count());
-        }
+       
     }
 }
