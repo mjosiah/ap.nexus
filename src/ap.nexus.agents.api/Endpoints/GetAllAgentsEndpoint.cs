@@ -30,7 +30,7 @@ namespace ap.nexus.agents.api.Endpoints
         {
             try
             {
-                var pagedResult = await _agentService.GetAllAgentsAsync(req);
+                var pagedResult = await _agentService.GetAgentsAsync(req);
                 await SendAsync(pagedResult, cancellation: ct);
             }
             catch (ValidationException vex)

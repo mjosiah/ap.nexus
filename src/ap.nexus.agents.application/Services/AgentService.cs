@@ -65,7 +65,7 @@ namespace ap.nexus.agents.application.Services
             throw new NotImplementedException();
         }
 
-        public async Task<PagedResultDto<AgentDto>> GetAllAgentsAsync(PagedAndSortedResultRequestDto input)
+        public async Task<PagedResultDto<AgentDto>> GetAgentsAsync(PagedAndSortedResultRequestDto input)
         {
             var query = _agentRepository.Query();
 

@@ -27,7 +27,7 @@ namespace ap.nexus.agents.IntegrationTests
                 Sorting = "Name"
             };
 
-            var result = await _agentService.GetAllAgentsAsync(requestDto);
+            var result = await _agentService.GetAgentsAsync(requestDto);
 
             result.Should().NotBeNull();
             result.Items.Should().NotBeEmpty("because the database was seeded with test agents");

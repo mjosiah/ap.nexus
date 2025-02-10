@@ -6,7 +6,7 @@ namespace ap.nexus.abstractions.Agents.Interfaces
     {
         Task<AgentDto> CreateAgentAsync(CreateAgentRequest request);
         Task<AgentDto?> GetAgentByExternalIdAsync(Guid agentExternalId);
-        Task<PagedResultDto<AgentDto>> GetAllAgentsAsync(PagedAndSortedResultRequestDto input);
+        Task<PagedResultDto<AgentDto>> GetAgentsAsync(PagedAndSortedResultRequestDto input);
         Task<bool> DeleteAgentAsync(Guid agentExternalId);
         Task<AgentDto> UpdateAgentAsync(Guid agentExternalId, UpdateAgentRequest request);
     }

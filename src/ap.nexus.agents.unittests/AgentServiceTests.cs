@@ -95,7 +95,7 @@ namespace ap.nexus.agents.unittests
             };
 
             // Act
-            var result = await _agentService.GetAllAgentsAsync(requestDto);
+            var result = await _agentService.GetAgentsAsync(requestDto);
 
             // Assert
             result.Should().NotBeNull();
