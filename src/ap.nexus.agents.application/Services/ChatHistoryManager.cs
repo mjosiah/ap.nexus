@@ -151,7 +151,7 @@ namespace ap.nexus.agents.application.Services
         {
             try
             {
-                await _messageService.AddMessageAsync(chatMessage);
+                await _messageService.AddMessageAsync(chatMessage,Guid.Parse(key));
             }
             catch (Exception ex)
             {
