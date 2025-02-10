@@ -40,7 +40,7 @@ namespace ap.nexus.abstractions.Agents.Interfaces
         /// </summary>
         /// <param name="message">The updated message content.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        Task UpdateMessageAsync(ChatMessageContent message);
+        Task UpdateMessageAsync(int messageId, ChatMessageContent message);
 
         /// <summary>
         /// Deletes a message by its ID.
