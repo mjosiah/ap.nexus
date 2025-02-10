@@ -42,5 +42,10 @@ namespace ap.nexus.agents.IntegrationTests
                 context.SaveChanges();
             }
         }
+
+        public static Guid GetFirstAgentExternalId(this AgentsDbContext context)
+        {
+            return context.Agents.First().ExternalId;
+        }
     }
 }

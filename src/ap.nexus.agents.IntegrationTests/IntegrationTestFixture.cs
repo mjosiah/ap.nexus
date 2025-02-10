@@ -41,7 +41,7 @@ namespace ap.nexus.agents.IntegrationTests
             // Register application services.
             services.AddScoped<IAgentService, AgentService>();
             services.AddScoped<IThreadService, ThreadService>();
-            //services.AddScoped<IMessageService, Mes>();
+            services.AddScoped<IMessageService, MessageService>();
             services.AddScoped<IChatHistoryManager, ChatHistoryManager>();
 
             ServiceProvider = services.BuildServiceProvider();
