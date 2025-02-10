@@ -9,7 +9,7 @@ namespace ap.nexus.abstractions.Agents.Interfaces
         /// </summary>
         /// <param name="message">The message content to store.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        Task AddMessageAsync(ChatMessageContent message);
+        Task AddMessageAsync(ChatMessageContent message, Guid threadExternalId);
 
 
         /// <summary>
