@@ -5,44 +5,49 @@ namespace ap.nexus.abstractions.Agents.Interfaces
     public interface IMessageService
     {
         /// <summary>
-        /// Creates a new message in the data store.
+        /// Creates a new message.
         /// </summary>
-        /// <param name="message">The ChatMessageContent to store.</param>
+        /// <param name="message">The message content to store.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        Task CreateMessageAsync(ChatMessageContent message);
+        Task AddMessageAsync(ChatMessageContent message);
 
 
         /// <summary>
-        /// Retrieves messages by thread ExternalId.
+        /// Retrieves messages by thread's EXTERNAL ID.
         /// </summary>
-        /// <param name="externalId">The ExternalId of the thread.</param>
+        /// <param name="threadExternalId">The globally unique external ID of the thread.</param>
         /// <returns>A Task representing the asynchronous operation, which returns a list of ChatMessageContent objects.</returns>
-        Task<List<ChatMessageContent>> GetMessagesByThreadExternalIdAsync(Guid externalId);
+        Task<List<ChatMessageContent>> GetMessagesByThreadExternalIdAsync(Guid threadExternalId);
 
         /// <summary>
-        /// Retrieves a specific message by its ID. (Optional, but often useful)
+        /// Retrieves messages by thread's INTERNAL ID.
+        /// </summary>
+        /// <param name="threadId">The internal ID of the thread.</param>
+        /// <returns>A Task representing the asynchronous operation, which returns a list of ChatMessageContent objects.</returns>
+        Task<List<ChatMessageContent>> GetMessagesByThreadIdAsync(int threadId);
+
+
+        /// <summary>
+        /// Retrieves a specific message by its ID.
         /// </summary>
         /// <param name="messageId">The ID of the message.</param>
         /// <returns>A Task representing the asynchronous operation, which returns the ChatMessageContent object or null if not found.</returns>
-        Task<ChatMessageContent?> GetMessageByIdAsync(string messageId); // Consider nullable return
+        Task<ChatMessageContent?> GetMessageByIdAsync(string messageId);
 
 
         /// <summary>
-        /// Updates an existing message. (Optional, but useful for editing)
+        /// Updates an existing message.
         /// </summary>
-        /// <param name="message">The updated ChatMessageContent.</param>
+        /// <param name="message">The updated message content.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
         Task UpdateMessageAsync(ChatMessageContent message);
 
         /// <summary>
-        /// Deletes a message by its ID. (Optional)
+        /// Deletes a message by its ID.
         /// </summary>
         /// <param name="messageId">The ID of the message to delete.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
         Task DeleteMessageAsync(string messageId);
 
-        // Other methods as needed for your specific requirements,
-        // e.g., pagination, searching, etc.
     }
-
 }
