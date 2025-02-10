@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
 using ap.nexus.agents.infrastructure.Data.Repositories;
+using Microsoft.Extensions.Logging;
 
 namespace ap.nexus.agents.IntegrationTests
 {
@@ -25,6 +26,8 @@ namespace ap.nexus.agents.IntegrationTests
             // Set up a service collection.
             var services = new ServiceCollection();
 
+            services.AddLogging(builder => builder.AddConsole());
+
             // Register the DbContext to use the SQLite in‑memory database.
             services.AddDbContext<AgentsDbContext>(options =>
                 options.UseSqlite(_connection));
@@ -37,10 +40,9 @@ namespace ap.nexus.agents.IntegrationTests
 
             // Register application services.
             services.AddScoped<IAgentService, AgentService>();
-
-
-            // Register application services.
-            services.AddScoped<IAgentService, AgentService>();
+            services.AddScoped<IThreadService, ThreadService>();
+            //services.AddScoped<IMessageService, Mes>();
+            services.AddScoped<IChatHistoryManager, ChatHistoryManager>();
 
             ServiceProvider = services.BuildServiceProvider();
 
