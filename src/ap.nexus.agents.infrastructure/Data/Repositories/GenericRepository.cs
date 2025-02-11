@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace ap.nexus.agents.infrastructure.Data.Repositories
 {
@@ -44,6 +45,11 @@ namespace ap.nexus.agents.infrastructure.Data.Repositories
         public async Task<int> SaveChangesAsync()
         {
             return await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task<TEntity> FirstOrDefaultAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _dbContext.Set<TEntity>().Where(predicate).FirstOrDefaultAsync();
         }
     }
 }

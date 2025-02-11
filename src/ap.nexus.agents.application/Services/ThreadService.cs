@@ -13,11 +13,13 @@ namespace ap.nexus.agents.application.Services
     public class ThreadService : IThreadService
     {
         private readonly IGenericRepository<ChatThread> _chatThreadRepository;
+        private readonly IGenericRepository<Agent> _agentRepository;
         private readonly ILogger<ThreadService> _logger;
 
-        public ThreadService(IGenericRepository<ChatThread> chatThreadRepository, ILogger<ThreadService> logger)
+        public ThreadService(IGenericRepository<ChatThread> chatThreadRepository, IGenericRepository<Agent> agentRepository, ILogger<ThreadService> logger)
         {
             _chatThreadRepository = chatThreadRepository;
+            _agentRepository = agentRepository;
             _logger = logger;
         }
 
@@ -29,9 +31,17 @@ namespace ap.nexus.agents.application.Services
         {
             try
             {
+                var agent = await _agentRepository.FirstOrDefaultAsync(a => a.ExternalId == request.AgentExternalId);
+
+                if (agent == null)
+                {
+                    throw new Exception($"Agent with ExternalId {request.AgentExternalId} not found."); 
+                }
+
                 var chatThread = new ChatThread
                 {
                     ExternalId = Guid.NewGuid(),
+                    AgentId = agent.Id,
                     Title = request.Title,
                     AgentExternalId = request.AgentExternalId,
                     UserId = request.UserId
@@ -66,6 +76,7 @@ namespace ap.nexus.agents.application.Services
         {
             try
             {
+
                 var chatThread = await _chatThreadRepository
                     .Query()
                     .FirstOrDefaultAsync(ct => ct.ExternalId == externalId);

@@ -1,8 +1,14 @@
 ﻿using ap.nexus.abstractions.Agents.DTOs;
 using ap.nexus.abstractions.Agents.Interfaces;
 using ap.nexus.agents.application.Services;
+using ap.nexus.agents.domain.Entities;
+using ap.nexus.agents.infrastructure.Data;
+using ap.nexus.agents.infrastructure.Data.Repositories;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
+using Xunit;
 
 namespace ap.nexus.agents.IntegrationTests
 {
@@ -11,21 +17,28 @@ namespace ap.nexus.agents.IntegrationTests
         private readonly IntegrationTestFixture _fixture;
         private readonly IChatHistoryManager _chatHistoryManager;
         private readonly IThreadService _threadService;
+        private readonly IGenericRepository<Agent> _agentRepository;
+        private readonly AgentsDbContext _context;
 
         public ChatHistoryManagerIntegrationTests(IntegrationTestFixture fixture)
         {
             _fixture = fixture;
             _chatHistoryManager = _fixture.ServiceProvider.GetRequiredService<IChatHistoryManager>();
             _threadService = _fixture.ServiceProvider.GetRequiredService<IThreadService>();
+            _agentRepository = _fixture.ServiceProvider.GetRequiredService<IGenericRepository<Agent>>();
+            _context = _fixture.ServiceProvider.GetRequiredService<AgentsDbContext>();
         }
+    
 
         [Fact]
         public async Task CreateThreadAsync_ValidRequest_ShouldReturnChatThreadDto()
         {
+            var agentExternalId = _context.GetFirstAgentExternalId();
+
             var request = new CreateChatThreadRequest
             {
                 Title = "Test Thread",
-                AgentExternalId = Guid.NewGuid(),
+                AgentExternalId = agentExternalId,
                 UserId = "TestUser"
             };
 
@@ -39,16 +52,16 @@ namespace ap.nexus.agents.IntegrationTests
         [Fact]
         public async Task GetChatHistoryByExternalIdAsync_ValidExternalId_ShouldReturnChatHistory()
         {
-            // Create a thread to work with
+            var agentExternalId = _context.GetFirstAgentExternalId();
+
             var createRequest = new CreateChatThreadRequest
             {
                 Title = "Test Get History",
-                AgentExternalId = Guid.NewGuid(),
+                AgentExternalId = agentExternalId,
                 UserId = "TestUser"
             };
             var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
 
-            // Retrieve the thread by ExternalId
             var result = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
 
             result.Should().NotBeNull();
@@ -58,20 +71,18 @@ namespace ap.nexus.agents.IntegrationTests
         [Fact]
         public async Task AddUserMessageAsync_ValidMessage_ShouldAddToChatHistory()
         {
-            // Create a thread to work with
+            var agentExternalId = _context.GetFirstAgentExternalId();
             var createRequest = new CreateChatThreadRequest
             {
                 Title = "Test Add User Message",
-                AgentExternalId = Guid.NewGuid(),
+                AgentExternalId = agentExternalId,
                 UserId = "TestUser"
             };
             var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
 
-            // Add a user message
             string userMessage = "Hello, this is a user message.";
             await _chatHistoryManager.AddUserMessageAsync(createdThread.ExternalId, userMessage);
 
-            // Retrieve the thread and verify the message
             var result = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
             result.Should().NotBeNull();
             result.Should().ContainSingle()
@@ -81,20 +92,18 @@ namespace ap.nexus.agents.IntegrationTests
         [Fact]
         public async Task AddBotMessageAsync_ValidMessage_ShouldAddToChatHistory()
         {
-            // Create a thread to work with
+            var agentExternalId = _context.GetFirstAgentExternalId();
             var createRequest = new CreateChatThreadRequest
             {
                 Title = "Test Add Bot Message",
-                AgentExternalId = Guid.NewGuid(),
+                AgentExternalId = agentExternalId,
                 UserId = "TestUser"
             };
             var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
 
-            // Add a bot message
             string botMessage = "Hello, this is a bot message.";
             await _chatHistoryManager.AddBotMessageAsync(createdThread.ExternalId, botMessage);
 
-            // Retrieve the thread and verify the message
             var result = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
             result.Should().NotBeNull();
             result.Should().ContainSingle()
@@ -104,22 +113,19 @@ namespace ap.nexus.agents.IntegrationTests
         [Fact]
         public async Task PruneInactiveThreads_ShouldRemoveInactiveThreads()
         {
-            // Create a thread to work with
+            var agentExternalId = _context.GetFirstAgentExternalId();
             var createRequest = new CreateChatThreadRequest
             {
                 Title = "Test Prune Inactive Threads",
-                AgentExternalId = Guid.NewGuid(),
+                AgentExternalId = agentExternalId,
                 UserId = "TestUser"
             };
             var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
 
-            // Simulate inactivity by waiting longer than the pruning threshold
             await Task.Delay(TimeSpan.FromMinutes(35));
 
-            // Prune inactive threads
             _chatHistoryManager.PruneInactiveThreads();
 
-            // Try to retrieve the thread after pruning
             var result = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
             result.Should().BeNull("because the thread should have been pruned due to inactivity.");
         }
@@ -127,23 +133,20 @@ namespace ap.nexus.agents.IntegrationTests
         [Fact]
         public async Task ClearHistory_ShouldRemoveAllMessages()
         {
-            // Create a thread to work with
+            var agentExternalId = _context.GetFirstAgentExternalId();
             var createRequest = new CreateChatThreadRequest
             {
                 Title = "Test Clear History",
-                AgentExternalId = Guid.NewGuid(),
+                AgentExternalId = agentExternalId,
                 UserId = "TestUser"
             };
             var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
 
-            // Add some messages
             await _chatHistoryManager.AddUserMessageAsync(createdThread.ExternalId, "First user message");
             await _chatHistoryManager.AddBotMessageAsync(createdThread.ExternalId, "First bot message");
 
-            // Clear the history
             _chatHistoryManager.ClearHistory(createdThread.ExternalId);
 
-            // Retrieve the thread and verify that no messages exist
             var result = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
             result.Should().NotBeNull();
             result.Should().BeEmpty("because the history was cleared.");
