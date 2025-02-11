@@ -4,6 +4,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion; // For ChatHistory, ChatMessageContent, AuthorRole
 using ap.nexus.abstractions.Agents.DTOs;
 using ap.nexus.abstractions.Agents.Interfaces;
+using ap.nexus.agents.infrastructure.DateTimeProvider;
 
 namespace ap.nexus.agents.application.Services
 {
@@ -27,6 +28,7 @@ namespace ap.nexus.agents.application.Services
         private readonly IThreadService _threadService;
         private readonly IMessageService _messageService;
         private readonly IAgentService _agentService;
+        private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ILogger<ChatHistoryManager> _logger;
 
         // In‑memory store: we use the string representation of the ExternalId as the key.
@@ -39,11 +41,13 @@ namespace ap.nexus.agents.application.Services
             IThreadService threadService,
             IMessageService messageService,
             IAgentService agentService,
+            IDateTimeProvider dateTimeProvider,
             ILogger<ChatHistoryManager> logger)
         {
             _threadService = threadService;
             _messageService = messageService;
             _agentService = agentService;
+            _dateTimeProvider = dateTimeProvider;
             _logger = logger;
         }
 
@@ -175,7 +179,7 @@ namespace ap.nexus.agents.application.Services
         public void PruneInactiveThreads()
         {
             DateTime now = DateTime.UtcNow;
-            var keysToRemove = _threads.Keys.Where(k => (now - _threads[k].LastAccessed) > InactivityThreshold).ToList();
+            var keysToRemove = _threads.Keys.Where(k => (_dateTimeProvider.Now - _threads[k].LastAccessed) > InactivityThreshold).ToList();
             foreach (var key in keysToRemove)
             {
                 if (_threads.TryRemove(key, out _))
