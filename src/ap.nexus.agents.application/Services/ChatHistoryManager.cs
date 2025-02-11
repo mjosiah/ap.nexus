@@ -4,7 +4,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion; // For ChatHistory, ChatMessageContent, AuthorRole
 using ap.nexus.abstractions.Agents.DTOs;
 using ap.nexus.abstractions.Agents.Interfaces;
-using ap.nexus.agents.infrastructure.DateTimeProvider;
+using ap.nexus.agents.infrastructure.DateTimeProviders;
 
 namespace ap.nexus.agents.application.Services
 {
@@ -21,6 +21,8 @@ namespace ap.nexus.agents.application.Services
         Task AddBotMessageAsync(Guid threadExternalId, string message);
         void ClearHistory(Guid threadExternalId);
         void PruneInactiveThreads();
+        int GetMemoryThreadCount();
+        bool MemoryContainsThread(Guid externalId);
     }
 
     public class ChatHistoryManager : IChatHistoryManager
@@ -50,7 +52,15 @@ namespace ap.nexus.agents.application.Services
             _dateTimeProvider = dateTimeProvider;
             _logger = logger;
         }
+        public int GetMemoryThreadCount()
+        {
+            return _threads.Count;
+        }
 
+        public bool MemoryContainsThread(Guid externalId)
+        {
+            return _threads.ContainsKey(externalId.ToString()); // Or your key generation logic
+        }
         /// <summary>
         /// Creates a new conversation thread.
         /// Persists the thread via IThreadService, caches an empty ChatHistory, and returns a ChatThreadDto.
@@ -62,7 +72,7 @@ namespace ap.nexus.agents.application.Services
             string key = threadDto.ExternalId.ToString();
 
             var chatHistory = new ChatHistory();
-            var threadRecord = new ChatThreadRecord(chatHistory);
+            var threadRecord = new ChatThreadRecord(chatHistory, _dateTimeProvider);
             if (!_threads.TryAdd(key, threadRecord))
             {
                 _logger.LogError("Failed to add thread {ExternalId} to the in‑memory store.", threadDto.ExternalId);
@@ -102,7 +112,7 @@ namespace ap.nexus.agents.application.Services
                 chatHistory.Add(CreateChatMessageContent(storedMessage.Content, isUser));
             }
 
-            record = new ChatThreadRecord(chatHistory);
+            record = new ChatThreadRecord(chatHistory, _dateTimeProvider);
             _threads.TryAdd(key, record);
             return chatHistory;
         }
@@ -179,7 +189,7 @@ namespace ap.nexus.agents.application.Services
         public void PruneInactiveThreads()
         {
             DateTime now = DateTime.UtcNow;
-            var keysToRemove = _threads.Keys.Where(k => (_dateTimeProvider.Now - _threads[k].LastAccessed) > InactivityThreshold).ToList();
+            var keysToRemove = _threads.Keys.Where(k => (now - _threads[k].LastAccessed) > InactivityThreshold).ToList();
             foreach (var key in keysToRemove)
             {
                 if (_threads.TryRemove(key, out _))
@@ -193,16 +203,18 @@ namespace ap.nexus.agents.application.Services
         private class ChatThreadRecord
         {
             public ChatHistory ChatHistory { get; }
+            public IDateTimeProvider _dateTimeProvider;
             public object Lock { get; } = new object();
             public DateTime LastAccessed { get; private set; }
 
-            public ChatThreadRecord(ChatHistory chatHistory)
+            public ChatThreadRecord(ChatHistory chatHistory, IDateTimeProvider dateTimeProvider)
             {
                 ChatHistory = chatHistory;
-                LastAccessed = DateTime.UtcNow;
+                LastAccessed = dateTimeProvider.Now;
+                _dateTimeProvider = dateTimeProvider;
             }
 
-            public void UpdateLastAccessed() => LastAccessed = DateTime.UtcNow;
+            public void UpdateLastAccessed() => LastAccessed = _dateTimeProvider.Now;
         }
     }
 }

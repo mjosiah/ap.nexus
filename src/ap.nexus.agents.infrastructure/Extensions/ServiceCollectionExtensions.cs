@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using ap.nexus.agents.infrastructure.Data.Repositories;
+using ap.nexus.agents.infrastructure.DateTimeProviders;
 
 namespace ap.nexus.agents.infrastructure.Extensions
 {
@@ -16,6 +17,8 @@ namespace ap.nexus.agents.infrastructure.Extensions
 
             // Register the generic repository.
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+
+            services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 
             return services;
         }

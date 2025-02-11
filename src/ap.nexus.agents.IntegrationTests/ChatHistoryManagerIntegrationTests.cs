@@ -18,6 +18,8 @@ namespace ap.nexus.agents.IntegrationTests
         private readonly IChatHistoryManager _chatHistoryManager;
         private readonly IThreadService _threadService;
         private readonly IGenericRepository<Agent> _agentRepository;
+        private readonly IGenericRepository<ChatThread> _chatThreadRepository;
+        
         private readonly AgentsDbContext _context;
 
         public ChatHistoryManagerIntegrationTests(IntegrationTestFixture fixture)
@@ -26,6 +28,7 @@ namespace ap.nexus.agents.IntegrationTests
             _chatHistoryManager = _fixture.ServiceProvider.GetRequiredService<IChatHistoryManager>();
             _threadService = _fixture.ServiceProvider.GetRequiredService<IThreadService>();
             _agentRepository = _fixture.ServiceProvider.GetRequiredService<IGenericRepository<Agent>>();
+            _chatThreadRepository = _fixture.ServiceProvider.GetRequiredService<IGenericRepository<ChatThread>>();
             _context = _fixture.ServiceProvider.GetRequiredService<AgentsDbContext>();
         }
     
@@ -113,6 +116,7 @@ namespace ap.nexus.agents.IntegrationTests
         [Fact]
         public async Task PruneInactiveThreads_ShouldRemoveInactiveThreads()
         {
+            // 1. Arrange (Set up data in the past)
             var agentExternalId = _context.GetFirstAgentExternalId();
             var createRequest = new CreateChatThreadRequest
             {
@@ -120,14 +124,16 @@ namespace ap.nexus.agents.IntegrationTests
                 AgentExternalId = agentExternalId,
                 UserId = "TestUser"
             };
+
             var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
 
-            await Task.Delay(TimeSpan.FromMinutes(35));
 
+            // 2. Act (Call PruneInactiveThreads)
             _chatHistoryManager.PruneInactiveThreads();
 
-            var result = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
-            result.Should().BeNull("because the thread should have been pruned due to inactivity.");
+
+            var threadKey = createdThread.ExternalId.ToString(); // Or however you generate the key
+            _chatHistoryManager.MemoryContainsThread(createdThread.ExternalId).Should().BeFalse(); 
         }
 
         [Fact]

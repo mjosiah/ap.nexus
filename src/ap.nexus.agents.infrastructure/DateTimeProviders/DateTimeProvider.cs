@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ap.nexus.agents.infrastructure.DateTimeProvider
+namespace ap.nexus.agents.infrastructure.DateTimeProviders
 {
     public class DateTimeProvider : IDateTimeProvider
     {

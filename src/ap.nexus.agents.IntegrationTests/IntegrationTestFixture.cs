@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
 using ap.nexus.agents.infrastructure.Data.Repositories;
 using Microsoft.Extensions.Logging;
+using ap.nexus.agents.infrastructure.DateTimeProviders;
 
 namespace ap.nexus.agents.IntegrationTests
 {
@@ -43,6 +44,7 @@ namespace ap.nexus.agents.IntegrationTests
             services.AddScoped<IThreadService, ThreadService>();
             services.AddScoped<IMessageService, MessageService>();
             services.AddScoped<IChatHistoryManager, ChatHistoryManager>();
+            services.AddTransient<IDateTimeProvider, TestDateTimeProvider>();
 
             ServiceProvider = services.BuildServiceProvider();
 
