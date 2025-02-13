@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using System.Text.Json;
 
 namespace ap.nexus.agents.IntegrationTests
 {
@@ -176,6 +177,45 @@ namespace ap.nexus.agents.IntegrationTests
 
             return await query.FirstOrDefaultAsync();
         }
+
+        [Fact]
+        public async Task AddAndRetrieveMessage_WithPolymorphicItems_ShouldSerializeAndDeserializeCorrectly()
+        {
+            // Arrange: Create a test chat thread and a ChatMessageContent with TextContent and ImageContent.
+            var title = "Test Polymorphic Serialization";
+            var thread = await CreateTestChatThreadAsync(title);
+
+            var messageContent = new ChatMessageContent(AuthorRole.User, "This is a polymorphic message.");
+            var textContent = new TextContent { Text = "Sample text content" };
+            var imageContent = new ImageContent { Uri = new Uri("http://example.com/image.jpg") };
+
+            messageContent.Items.Add(textContent);
+            messageContent.Items.Add(imageContent);
+
+            // Act: Add the message to the database and retrieve it.
+            await _messageService.AddMessageAsync(messageContent, thread.ExternalId);
+            var retrievedMessage = await _messageService.GetMessagesByThreadExternalIdAsync(thread.ExternalId);
+
+            // Serialize the retrieved message to JSON for debugging.
+            var retrievedJson = JsonSerializer.Serialize(retrievedMessage, new JsonSerializerOptions { WriteIndented = true });
+            Console.WriteLine(retrievedJson);
+
+            // Assert: Verify that the deserialization worked as expected.
+            retrievedMessage.Should().NotBeEmpty();
+            var deserializedMessage = retrievedMessage.First();
+
+            deserializedMessage.Items.Should().HaveCount(3);  // Check if the count matches the expected 2 items
+
+            var deserializedTextContent = deserializedMessage.Items.OfType<TextContent>().FirstOrDefault();
+            deserializedTextContent.Should().NotBeNull();
+            deserializedTextContent.Text.Should().Be("This is a polymorphic message.");
+
+            var deserializedImageContent = deserializedMessage.Items.OfType<ImageContent>().FirstOrDefault();
+            deserializedImageContent.Should().NotBeNull();
+            deserializedImageContent.Uri.Should().Be(new Uri("http://example.com/image.jpg"));
+        }
+
+
 
         // Helper method to get a chat thread entity by ExternalId.
         private async Task<ChatThread?> GetTestChatThreadByExternalIdAsync(Guid externalId)
