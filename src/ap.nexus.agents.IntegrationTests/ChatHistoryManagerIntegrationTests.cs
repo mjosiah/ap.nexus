@@ -1,6 +1,6 @@
 ﻿using ap.nexus.abstractions.Agents.DTOs;
 using ap.nexus.abstractions.Agents.Interfaces;
-using ap.nexus.agents.application.Services;
+using ap.nexus.agents.application.Services.ChatServices;
 using ap.nexus.agents.domain.Entities;
 using ap.nexus.agents.infrastructure.Data;
 using ap.nexus.agents.infrastructure.Data.Repositories;

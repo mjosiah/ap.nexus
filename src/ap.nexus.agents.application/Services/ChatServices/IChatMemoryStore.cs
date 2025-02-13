@@ -1,6 +1,6 @@
 ﻿using Microsoft.SemanticKernel.ChatCompletion;
 
-namespace ap.nexus.agents.application.Services
+namespace ap.nexus.agents.application.Services.ChatServices
 {
     public interface IChatMemoryStore
     {
@@ -10,6 +10,6 @@ namespace ap.nexus.agents.application.Services
         Task<bool> ExistsAsync(Guid externalId);
         int GetThreadCount();
         IEnumerable<string> GetInactiveThreads(TimeSpan inactivityThreshold, DateTime currentTime);
-        Task PruneInactiveThreadsAsync(TimeSpan inactivityThreshold, DateTime currentTime); 
+        Task PruneInactiveThreadsAsync(TimeSpan inactivityThreshold, DateTime currentTime);
     }
 }

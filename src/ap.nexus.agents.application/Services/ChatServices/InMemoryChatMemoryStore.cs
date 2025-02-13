@@ -3,7 +3,7 @@ using ap.nexus.agents.infrastructure.DateTimeProviders;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.ChatCompletion;
 
-namespace ap.nexus.agents.application.Services
+namespace ap.nexus.agents.application.Services.ChatServices
 {
     public class InMemoryChatMemoryStore : IChatMemoryStore
     {
@@ -55,7 +55,7 @@ namespace ap.nexus.agents.application.Services
 
         public IEnumerable<string> GetInactiveThreads(TimeSpan inactivityThreshold, DateTime currentTime)
         {
-            return _store.Where(kvp => (currentTime - kvp.Value.LastAccessed) > inactivityThreshold)
+            return _store.Where(kvp => currentTime - kvp.Value.LastAccessed > inactivityThreshold)
                         .Select(kvp => kvp.Key)
                         .ToList();
         }
@@ -72,7 +72,7 @@ namespace ap.nexus.agents.application.Services
                 var key = kvp.Key;
                 var chatHistory = kvp.Value;
 
-                if (chatHistory != null && chatHistory.LastAccessed.HasValue && (currentTime - chatHistory.LastAccessed.Value) > inactivityThreshold)
+                if (chatHistory != null && chatHistory.LastAccessed.HasValue && currentTime - chatHistory.LastAccessed.Value > inactivityThreshold)
                 {
                     keysToRemove.Add(key);
                 }
@@ -89,18 +89,6 @@ namespace ap.nexus.agents.application.Services
             _logger.LogDebug("Finished pruning of inactive threads in InMemoryChatMemoryStore.");
         }
 
-        private class ChatThreadRecord
-        {
-            public ChatHistory ChatHistory { get; }
-            public DateTime? LastAccessed { get; private set; }
-
-            public ChatThreadRecord(ChatHistory chatHistory)
-            {
-                ChatHistory = chatHistory;
-                LastAccessed = DateTime.UtcNow;
-            }
-
-            public void UpdateLastAccessed() => LastAccessed = DateTime.UtcNow;
-        }
+        
     }
 }

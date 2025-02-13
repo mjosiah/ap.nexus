@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using AP.Nexus.Module.Application;
 using ap.nexus.abstractions.Agents.Interfaces;
 using ap.nexus.agents.application.Services;
+using ap.nexus.agents.application.Services.ChatServices;
 
 namespace ap.nexus.agents.application.Extensions
 {

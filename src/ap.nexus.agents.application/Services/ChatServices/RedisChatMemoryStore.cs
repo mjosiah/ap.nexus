@@ -4,7 +4,7 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using StackExchange.Redis;
 using System.Text.Json;
 
-namespace ap.nexus.agents.application.Services
+namespace ap.nexus.agents.application.Services.ChatServices
 {
     public class RedisChatMemoryStore : IChatMemoryStore
     {
@@ -23,7 +23,7 @@ namespace ap.nexus.agents.application.Services
             _logger = logger;
 
             _defaultTtl = TimeSpan.FromMinutes(configuration.GetValue<double>("Redis:DefaultTTLMinutes", 30));
-            _redisKeyPrefix = configuration.GetValue<string>("Redis:KeyPrefix", "ChatHistory");
+            _redisKeyPrefix = configuration.GetValue("Redis:KeyPrefix", "ChatHistory");
 
             _serializerOptions = new JsonSerializerOptions
             {
@@ -112,12 +112,12 @@ namespace ap.nexus.agents.application.Services
         public int GetThreadCount()
         {
             _logger.LogDebug("GetThreadCount called on RedisChatMemoryStore, but counting all keys is inefficient. Consider a separate counter.");
-            return 0; // Return 0 and log warning.  Implement a counter if needed.
+            return 0;
         }
 
         public IEnumerable<string> GetInactiveThreads(TimeSpan inactivityThreshold, DateTime currentTime)
         {
-            _logger.LogDebug("GetInactiveThreads called on RedisChatMemoryStore, but pruning is handled by TTL. Returning empty.");
+            _logger.LogDebug("GetInactiveThreads called on RedisChatMemoryStore");
             return Enumerable.Empty<string>();
         }
 
@@ -125,21 +125,6 @@ namespace ap.nexus.agents.application.Services
         {
             _logger.LogDebug("PruneInactiveThreadsAsync called on RedisChatMemoryStore, but pruning is handled by TTL. Returning CompletedTask.");
             return Task.CompletedTask;
-        }
-
-
-        private class ChatThreadRecord
-        {
-            public ChatHistory ChatHistory { get; }
-            public DateTime? LastAccessed { get; private set; }
-
-            public ChatThreadRecord(ChatHistory chatHistory)
-            {
-                ChatHistory = chatHistory;
-                LastAccessed = DateTime.UtcNow;
-            }
-
-            public void UpdateLastAccessed() => LastAccessed = DateTime.UtcNow;
         }
     }
 }

@@ -8,6 +8,7 @@ using Microsoft.Data.Sqlite;
 using ap.nexus.agents.infrastructure.Data.Repositories;
 using Microsoft.Extensions.Logging;
 using ap.nexus.agents.infrastructure.DateTimeProviders;
+using ap.nexus.agents.application.Services.ChatServices;
 
 namespace ap.nexus.agents.IntegrationTests
 {

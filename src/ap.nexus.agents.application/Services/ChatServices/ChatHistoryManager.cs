@@ -5,7 +5,7 @@ using ap.nexus.abstractions.Agents.DTOs;
 using ap.nexus.abstractions.Agents.Interfaces;
 using ap.nexus.agents.infrastructure.DateTimeProviders;
 
-namespace ap.nexus.agents.application.Services
+namespace ap.nexus.agents.application.Services.ChatServices
 {
     /// <summary>
     /// Manages in‑memory chat histories and asynchronous persistence.
@@ -118,9 +118,9 @@ namespace ap.nexus.agents.application.Services
             _logger.LogInformation("Cleared chat history for thread {ExternalId}.", externalId);
         }
 
-        
 
-  
+
+
 
         public Task<bool> MemoryContainsThread(Guid externalId)
         {

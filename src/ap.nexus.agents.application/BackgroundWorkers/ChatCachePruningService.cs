@@ -1,4 +1,4 @@
-﻿using ap.nexus.agents.application.Services;
+﻿using ap.nexus.agents.application.Services.ChatServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
