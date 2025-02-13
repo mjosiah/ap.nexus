@@ -4,8 +4,10 @@ using ap.nexus.agents.application.Services;
 using ap.nexus.agents.domain.Entities;
 using ap.nexus.agents.infrastructure.Data;
 using ap.nexus.agents.infrastructure.Data.Repositories;
+using ap.nexus.agents.infrastructure.DateTimeProviders;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.SemanticKernel.Memory;
 using System;
 using System.Threading.Tasks;
 using Xunit;
@@ -19,7 +21,8 @@ namespace ap.nexus.agents.IntegrationTests
         private readonly IThreadService _threadService;
         private readonly IGenericRepository<Agent> _agentRepository;
         private readonly IGenericRepository<ChatThread> _chatThreadRepository;
-        
+        private readonly IChatMemoryStore _memoryStore;
+
         private readonly AgentsDbContext _context;
 
         public ChatHistoryManagerIntegrationTests(IntegrationTestFixture fixture)
@@ -30,6 +33,7 @@ namespace ap.nexus.agents.IntegrationTests
             _agentRepository = _fixture.ServiceProvider.GetRequiredService<IGenericRepository<Agent>>();
             _chatThreadRepository = _fixture.ServiceProvider.GetRequiredService<IGenericRepository<ChatThread>>();
             _context = _fixture.ServiceProvider.GetRequiredService<AgentsDbContext>();
+            _memoryStore = _fixture.ServiceProvider.GetRequiredService<IChatMemoryStore>();
         }
     
 
@@ -116,7 +120,7 @@ namespace ap.nexus.agents.IntegrationTests
         [Fact]
         public async Task PruneInactiveThreads_ShouldRemoveInactiveThreads()
         {
-            // 1. Arrange (Set up data in the past)
+            // 1. Arrange (Set up data in the past using TestDateTimeProvider)
             var agentExternalId = _context.GetFirstAgentExternalId();
             var createRequest = new CreateChatThreadRequest
             {
@@ -127,13 +131,28 @@ namespace ap.nexus.agents.IntegrationTests
 
             var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
 
+            // Get the TestDateTimeProvider
+            var dateTimeProvider = _fixture.ServiceProvider.GetRequiredService<IDateTimeProvider>() as TestDateTimeProvider;
+            dateTimeProvider.Should().NotBeNull();
 
-            // 2. Act (Call PruneInactiveThreads)
-            _chatHistoryManager.PruneInactiveThreads();
+            var pastTime = DateTime.UtcNow.AddDays(-1);
+            dateTimeProvider.Now = pastTime; // Set Now to past time
+
+            // Access the chat history to create the ChatThreadRecord with the past LastAccessed
+            await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
 
 
-            var threadKey = createdThread.ExternalId.ToString(); // Or however you generate the key
-            _chatHistoryManager.MemoryContainsThread(createdThread.ExternalId).Should().BeFalse(); 
+            // 2. Act (Advance time and call PruneInactiveThreads)
+            var currentTime = DateTime.UtcNow;
+            dateTimeProvider.Now = currentTime; // Set Now to current time
+
+            if (_memoryStore is InMemoryChatMemoryStore inMemoryStore)
+            {
+                await inMemoryStore.PruneInactiveThreadsAsync(TimeSpan.FromMinutes(30), dateTimeProvider.Now);
+            }
+
+            // 3. Assert
+            (await _memoryStore.ExistsAsync(createdThread.ExternalId)).Should().BeFalse();
         }
 
         [Fact]

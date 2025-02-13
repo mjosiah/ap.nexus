@@ -8,5 +8,8 @@ namespace ap.nexus.agents.application.Services
         Task SetChatHistoryAsync(Guid externalId, ChatHistory chatHistory);
         Task RemoveChatHistoryAsync(Guid externalId);
         Task<bool> ExistsAsync(Guid externalId);
+        int GetThreadCount();
+        IEnumerable<string> GetInactiveThreads(TimeSpan inactivityThreshold, DateTime currentTime);
+        Task PruneInactiveThreadsAsync(TimeSpan inactivityThreshold, DateTime currentTime); 
     }
 }

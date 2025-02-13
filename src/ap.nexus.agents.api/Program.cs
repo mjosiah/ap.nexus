@@ -2,6 +2,7 @@ using FastEndpoints;
 using ap.nexus.agents.infrastructure.Extensions;
 using FastEndpoints.Swagger;
 using ap.nexus.agents.application.Extensions;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,11 @@ builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddFastEndpoints()
     .SwaggerDocument();
 
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    return ConnectionMultiplexer.Connect(configuration.GetValue<string>("Redis:ConnectionString"));
+});
 
 var app = builder.Build();
 

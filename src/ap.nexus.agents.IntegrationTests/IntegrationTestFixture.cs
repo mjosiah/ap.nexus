@@ -44,6 +44,7 @@ namespace ap.nexus.agents.IntegrationTests
             services.AddScoped<IThreadService, ThreadService>();
             services.AddScoped<IMessageService, MessageService>();
             services.AddScoped<IChatHistoryManager, ChatHistoryManager>();
+            services.AddTransient<IChatMemoryStore, InMemoryChatMemoryStore>();
             services.AddTransient<IDateTimeProvider, TestDateTimeProvider>();
 
             ServiceProvider = services.BuildServiceProvider();

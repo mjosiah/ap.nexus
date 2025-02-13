@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion; // For ChatHistory, ChatMessageContent, AuthorRole
 using ap.nexus.abstractions.Agents.DTOs;
@@ -20,9 +19,7 @@ namespace ap.nexus.agents.application.Services
         Task AddUserMessageAsync(Guid threadExternalId, string message);
         Task AddBotMessageAsync(Guid threadExternalId, string message);
         void ClearHistory(Guid threadExternalId);
-        void PruneInactiveThreads();
-        int GetMemoryThreadCount();
-        bool MemoryContainsThread(Guid externalId);
+        Task<bool> MemoryContainsThread(Guid externalId);
     }
 
     public class ChatHistoryManager : IChatHistoryManager
@@ -30,71 +27,46 @@ namespace ap.nexus.agents.application.Services
         private readonly IThreadService _threadService;
         private readonly IMessageService _messageService;
         private readonly IAgentService _agentService;
-        private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ILogger<ChatHistoryManager> _logger;
-
-        // In‑memory store: we use the string representation of the ExternalId as the key.
-        private readonly ConcurrentDictionary<string, ChatThreadRecord> _threads = new ConcurrentDictionary<string, ChatThreadRecord>();
-
-        // Inactivity threshold for pruning (30 minutes here)
+        private readonly IChatMemoryStore _memoryStore;
         private static readonly TimeSpan InactivityThreshold = TimeSpan.FromMinutes(30);
 
         public ChatHistoryManager(
             IThreadService threadService,
             IMessageService messageService,
             IAgentService agentService,
-            IDateTimeProvider dateTimeProvider,
-            ILogger<ChatHistoryManager> logger)
+            ILogger<ChatHistoryManager> logger,
+            IChatMemoryStore memoryStore)
         {
             _threadService = threadService;
             _messageService = messageService;
             _agentService = agentService;
-            _dateTimeProvider = dateTimeProvider;
             _logger = logger;
-        }
-        public int GetMemoryThreadCount()
-        {
-            return _threads.Count;
+            _memoryStore = memoryStore;
         }
 
-        public bool MemoryContainsThread(Guid externalId)
-        {
-            return _threads.ContainsKey(externalId.ToString()); // Or your key generation logic
-        }
-        /// <summary>
-        /// Creates a new conversation thread.
-        /// Persists the thread via IThreadService, caches an empty ChatHistory, and returns a ChatThreadDto.
-        /// </summary>
         public async Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request)
         {
-            // Create the thread in persistence.
             ChatThreadDto threadDto = await _threadService.CreateThreadAsync(request);
-            string key = threadDto.ExternalId.ToString();
-
             var chatHistory = new ChatHistory();
-            var threadRecord = new ChatThreadRecord(chatHistory, _dateTimeProvider);
-            if (!_threads.TryAdd(key, threadRecord))
-            {
-                _logger.LogError("Failed to add thread {ExternalId} to the in‑memory store.", threadDto.ExternalId);
-                throw new Exception($"Unable to add thread {threadDto.ExternalId} to in‑memory store.");
-            }
+
+            await _memoryStore.SetChatHistoryAsync(threadDto.ExternalId, chatHistory);
+
+            _logger.LogInformation("Created new chat thread {ExternalId} and initialized chat history.", threadDto.ExternalId);
             return threadDto;
         }
 
-        /// <summary>
-        /// Retrieves the ChatHistory for a given thread by ExternalId.
-        /// If not found in the cache, attempts to load it from the database.
-        /// </summary>
         public async Task<ChatHistory?> GetChatHistoryByExternalIdAsync(Guid externalId)
         {
-            string key = externalId.ToString();
-            if (_threads.TryGetValue(key, out ChatThreadRecord record))
+            ChatHistory? chatHistory = await _memoryStore.GetChatHistoryAsync(externalId);
+            if (chatHistory != null)
             {
-                record.UpdateLastAccessed();
-                return record.ChatHistory;
+                _logger.LogInformation("Chat history for thread {ExternalId} found in memory store.", externalId);
+                return chatHistory;
             }
 
-            // Attempt to retrieve the thread DTO from persistence.
+            _logger.LogWarning("Chat history for thread {ExternalId} not found in memory store. Attempting to load from persistence.", externalId);
+
             ChatThreadDto? threadDto = await _threadService.GetThreadByExternalIdAsync(externalId);
             if (threadDto == null)
             {
@@ -102,119 +74,76 @@ namespace ap.nexus.agents.application.Services
                 return null;
             }
 
-            // Load messages from persistence.
-            var storedMessages = await _messageService.GetMessagesByThreadExternalIdAsync(Guid.Parse(key));
-            var chatHistory = new ChatHistory();
+            var storedMessages = await _messageService.GetMessagesByThreadExternalIdAsync(externalId);
+            chatHistory = new ChatHistory();
             foreach (var storedMessage in storedMessages)
             {
                 bool isUser = storedMessage.Role.Label.Equals("User", StringComparison.OrdinalIgnoreCase);
-                // Since ChatHistory's AddUserMessage/AddAssistantMessage return void, create the message manually.
                 chatHistory.Add(CreateChatMessageContent(storedMessage.Content, isUser));
             }
 
-            record = new ChatThreadRecord(chatHistory, _dateTimeProvider);
-            _threads.TryAdd(key, record);
+            await _memoryStore.SetChatHistoryAsync(externalId, chatHistory);
             return chatHistory;
         }
 
-        public Task AddUserMessageAsync(Guid externalId, string message)
+        public async Task AddUserMessageAsync(Guid externalId, string message)
         {
-            return AddMessageAsync(externalId, message, isUser: true);
+            await AddMessageAsync(externalId, message, isUser: true);
         }
 
-        public Task AddBotMessageAsync(Guid externalId, string message)
+        public async Task AddBotMessageAsync(Guid externalId, string message)
         {
-            return AddMessageAsync(externalId, message, isUser: false);
+            await AddMessageAsync(externalId, message, isUser: false);
         }
 
-        /// <summary>
-        /// Helper method to add a message to the thread identified by ExternalId.
-        /// Since ChatHistory's methods do not return the message, we manually create a ChatMessageContent instance.
-        /// </summary>
-        private Task AddMessageAsync(Guid externalId, string message, bool isUser)
+        public async Task AddMessageAsync(Guid externalId, string message, bool isUser)
         {
-            string key = externalId.ToString();
-            if (!_threads.TryGetValue(key, out ChatThreadRecord record))
+            var chatHistory = await GetChatHistoryByExternalIdAsync(externalId);
+            if (chatHistory == null)
             {
-                _logger.LogWarning("Attempted to add a message to thread {ExternalId} which is not in memory.", externalId);
+                _logger.LogWarning("Attempted to add a message to thread {ExternalId} which does not exist.", externalId);
                 throw new ArgumentException($"Thread with ExternalId {externalId} does not exist.");
             }
 
-            // Create the ChatMessageContent manually.
             ChatMessageContent chatMessageContent = CreateChatMessageContent(message, isUser);
+            chatHistory.Add(chatMessageContent);
 
-            lock (record.Lock)
-            {
-                record.UpdateLastAccessed();
-                record.ChatHistory.Add(chatMessageContent);
-            }
-
-            _ = PersistMessageAsync(key, chatMessageContent);
-            return Task.CompletedTask;
+            await _memoryStore.SetChatHistoryAsync(externalId, chatHistory);
+            await PersistMessageAsync(externalId, chatMessageContent);
         }
 
-        /// <summary>
-        /// Creates a ChatMessageContent instance based on the provided message and role.
-        /// </summary>
+        public void ClearHistory(Guid externalId)
+        {
+            _memoryStore.RemoveChatHistoryAsync(externalId);
+            _logger.LogInformation("Cleared chat history for thread {ExternalId}.", externalId);
+        }
+
+        
+
+  
+
+        public Task<bool> MemoryContainsThread(Guid externalId)
+        {
+            return _memoryStore.ExistsAsync(externalId);
+        }
+
         private ChatMessageContent CreateChatMessageContent(string message, bool isUser)
         {
             return new ChatMessageContent(isUser ? AuthorRole.User : AuthorRole.Assistant, message);
         }
 
-        private async Task PersistMessageAsync(string key, ChatMessageContent chatMessage)
+        private async Task PersistMessageAsync(Guid externalId, ChatMessageContent chatMessage)
         {
             try
             {
-                await _messageService.AddMessageAsync(chatMessage,Guid.Parse(key));
+                await _messageService.AddMessageAsync(chatMessage, externalId);
+                _logger.LogInformation("Persisted message for thread {ExternalId}.", externalId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving message to the database for thread {ExternalId}.", key);
+                _logger.LogError(ex, "Error persisting message for thread {ExternalId}.", externalId);
+                throw;
             }
-        }
-
-        public void ClearHistory(Guid externalId)
-        {
-            string key = externalId.ToString();
-            if (_threads.TryGetValue(key, out ChatThreadRecord record))
-            {
-                lock (record.Lock)
-                {
-                    record.ChatHistory.Clear();
-                    record.UpdateLastAccessed();
-                }
-            }
-        }
-
-        public void PruneInactiveThreads()
-        {
-            DateTime now = DateTime.UtcNow;
-            var keysToRemove = _threads.Keys.Where(k => (now - _threads[k].LastAccessed) > InactivityThreshold).ToList();
-            foreach (var key in keysToRemove)
-            {
-                if (_threads.TryRemove(key, out _))
-                {
-                    _logger.LogInformation("Pruned inactive thread {ExternalId} from the cache.", key);
-                }
-            }
-        }
-
-        // Private nested class to hold each thread's state.
-        private class ChatThreadRecord
-        {
-            public ChatHistory ChatHistory { get; }
-            public IDateTimeProvider _dateTimeProvider;
-            public object Lock { get; } = new object();
-            public DateTime LastAccessed { get; private set; }
-
-            public ChatThreadRecord(ChatHistory chatHistory, IDateTimeProvider dateTimeProvider)
-            {
-                ChatHistory = chatHistory;
-                LastAccessed = dateTimeProvider.Now;
-                _dateTimeProvider = dateTimeProvider;
-            }
-
-            public void UpdateLastAccessed() => LastAccessed = _dateTimeProvider.Now;
         }
     }
 }

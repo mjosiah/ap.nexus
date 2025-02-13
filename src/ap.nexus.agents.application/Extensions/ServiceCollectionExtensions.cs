@@ -17,6 +17,7 @@ namespace ap.nexus.agents.application.Extensions
             services.AddScoped<IThreadService, ThreadService>();
             services.AddScoped<IMessageService, MessageService>();
             services.AddSingleton<IChatHistoryManager, ChatHistoryManager>();
+            services.AddSingleton<IChatMemoryStore, InMemoryChatMemoryStore>();
 
             return services;
         }
