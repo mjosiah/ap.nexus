@@ -172,9 +172,8 @@ namespace ap.nexus.agents.IntegrationTests
 
             _chatHistoryManager.ClearHistory(createdThread.ExternalId);
 
-            var result = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
-            result.Should().NotBeNull();
-            result.Should().BeEmpty("because the history was cleared.");
+            var memoryContainsThread = await _chatHistoryManager.MemoryContainsThread(createdThread.ExternalId);
+            memoryContainsThread.Should().BeFalse("because the history was cleared from memory.");
         }
     }
 }
