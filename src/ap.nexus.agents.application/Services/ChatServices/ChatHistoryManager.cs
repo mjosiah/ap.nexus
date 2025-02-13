@@ -16,8 +16,7 @@ namespace ap.nexus.agents.application.Services.ChatServices
     {
         Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request);
         Task<ChatHistory?> GetChatHistoryByExternalIdAsync(Guid externalId);
-        Task AddUserMessageAsync(Guid threadExternalId, string message);
-        Task AddBotMessageAsync(Guid threadExternalId, string message);
+        Task AddMessageAsync(Guid externalId, ChatMessageContent chatMessage);
         void ClearHistory(Guid threadExternalId);
         Task<bool> MemoryContainsThread(Guid externalId);
     }
@@ -78,25 +77,17 @@ namespace ap.nexus.agents.application.Services.ChatServices
             chatHistory = new ChatHistory();
             foreach (var storedMessage in storedMessages)
             {
-                bool isUser = storedMessage.Role.Label.Equals("User", StringComparison.OrdinalIgnoreCase);
-                chatHistory.Add(CreateChatMessageContent(storedMessage.Content, isUser));
+                var role = storedMessage.Role.Label.Equals("User", StringComparison.OrdinalIgnoreCase)
+                    ? AuthorRole.User
+                    : AuthorRole.Assistant;
+                chatHistory.Add(new ChatMessageContent(role, storedMessage.Content));
             }
 
             await _memoryStore.SetChatHistoryAsync(externalId, chatHistory);
             return chatHistory;
         }
 
-        public async Task AddUserMessageAsync(Guid externalId, string message)
-        {
-            await AddMessageAsync(externalId, message, isUser: true);
-        }
-
-        public async Task AddBotMessageAsync(Guid externalId, string message)
-        {
-            await AddMessageAsync(externalId, message, isUser: false);
-        }
-
-        public async Task AddMessageAsync(Guid externalId, string message, bool isUser)
+        public async Task AddMessageAsync(Guid externalId, ChatMessageContent chatMessage)
         {
             var chatHistory = await GetChatHistoryByExternalIdAsync(externalId);
             if (chatHistory == null)
@@ -105,11 +96,10 @@ namespace ap.nexus.agents.application.Services.ChatServices
                 throw new ArgumentException($"Thread with ExternalId {externalId} does not exist.");
             }
 
-            ChatMessageContent chatMessageContent = CreateChatMessageContent(message, isUser);
-            chatHistory.Add(chatMessageContent);
+            chatHistory.Add(chatMessage);
 
             await _memoryStore.SetChatHistoryAsync(externalId, chatHistory);
-            await PersistMessageAsync(externalId, chatMessageContent);
+            await PersistMessageAsync(externalId, chatMessage);
         }
 
         public void ClearHistory(Guid externalId)
@@ -118,18 +108,9 @@ namespace ap.nexus.agents.application.Services.ChatServices
             _logger.LogInformation("Cleared chat history for thread {ExternalId}.", externalId);
         }
 
-
-
-
-
         public Task<bool> MemoryContainsThread(Guid externalId)
         {
             return _memoryStore.ExistsAsync(externalId);
-        }
-
-        private ChatMessageContent CreateChatMessageContent(string message, bool isUser)
-        {
-            return new ChatMessageContent(isUser ? AuthorRole.User : AuthorRole.Assistant, message);
         }
 
         private async Task PersistMessageAsync(Guid externalId, ChatMessageContent chatMessage)

@@ -7,10 +7,8 @@ using ap.nexus.agents.infrastructure.Data.Repositories;
 using ap.nexus.agents.infrastructure.DateTimeProviders;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.SemanticKernel.Memory;
-using System;
-using System.Threading.Tasks;
-using Xunit;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion; // For ChatMessageContent and AuthorRole
 
 namespace ap.nexus.agents.IntegrationTests
 {
@@ -22,7 +20,6 @@ namespace ap.nexus.agents.IntegrationTests
         private readonly IGenericRepository<Agent> _agentRepository;
         private readonly IGenericRepository<ChatThread> _chatThreadRepository;
         private readonly IChatMemoryStore _memoryStore;
-
         private readonly AgentsDbContext _context;
 
         public ChatHistoryManagerIntegrationTests(IntegrationTestFixture fixture)
@@ -35,145 +32,158 @@ namespace ap.nexus.agents.IntegrationTests
             _context = _fixture.ServiceProvider.GetRequiredService<AgentsDbContext>();
             _memoryStore = _fixture.ServiceProvider.GetRequiredService<IChatMemoryStore>();
         }
-    
 
         [Fact]
-        public async Task CreateThreadAsync_ValidRequest_ShouldReturnChatThreadDto()
+        public async Task CreateThreadAsync_ValidRequest_ReturnsChatThreadDtoWithCorrectProperties()
         {
-            var agentExternalId = _context.GetFirstAgentExternalId();
+            // Arrange
+            var title = "Test Thread";
 
-            var request = new CreateChatThreadRequest
-            {
-                Title = "Test Thread",
-                AgentExternalId = agentExternalId,
-                UserId = "TestUser"
-            };
+            // Act
+            var createdThread = await CreateTestChatThreadAsync(title);
 
-            var result = await _chatHistoryManager.CreateThreadAsync(request);
-
-            result.Should().NotBeNull();
-            result.ExternalId.Should().NotBeEmpty();
-            result.Title.Should().Be("Test Thread");
+            // Assert
+            createdThread.Should().NotBeNull();
+            createdThread.ExternalId.Should().NotBeEmpty();
+            createdThread.Title.Should().Be(title);
         }
 
         [Fact]
-        public async Task GetChatHistoryByExternalIdAsync_ValidExternalId_ShouldReturnChatHistory()
+        public async Task GetChatHistoryByExternalIdAsync_EmptyHistory_ReturnsEmptyChatHistory()
         {
-            var agentExternalId = _context.GetFirstAgentExternalId();
+            // Arrange
+            var title = "Test Get Empty History";
+            var createdThread = await CreateTestChatThreadAsync(title);
 
-            var createRequest = new CreateChatThreadRequest
-            {
-                Title = "Test Get History",
-                AgentExternalId = agentExternalId,
-                UserId = "TestUser"
-            };
-            var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
+            // Act
+            var history = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
 
-            var result = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
-
-            result.Should().NotBeNull();
-            result.Should().BeEmpty("because no messages have been added yet");
+            // Assert
+            history.Should().NotBeNull();
+            history.Should().BeEmpty("because no messages have been added yet");
         }
 
         [Fact]
-        public async Task AddUserMessageAsync_ValidMessage_ShouldAddToChatHistory()
+        public async Task GetChatHistoryByExternalIdAsync_HistoryInMemory_ReturnsCachedChatHistory()
         {
-            var agentExternalId = _context.GetFirstAgentExternalId();
-            var createRequest = new CreateChatThreadRequest
-            {
-                Title = "Test Add User Message",
-                AgentExternalId = agentExternalId,
-                UserId = "TestUser"
-            };
-            var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
+            // Arrange
+            var title = "Test Get In-Memory History";
+            var createdThread = await CreateTestChatThreadAsync(title);
+            await AddTestUserMessageToThreadAsync(createdThread, "In-memory message");
 
-            string userMessage = "Hello, this is a user message.";
-            await _chatHistoryManager.AddUserMessageAsync(createdThread.ExternalId, userMessage);
+            // Act
+            var cachedHistory = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
 
-            var result = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
-            result.Should().NotBeNull();
-            result.Should().ContainSingle()
+            // Assert
+            cachedHistory.Should().NotBeNull();
+            cachedHistory.Should().ContainSingle()
+                .Which.Content.Should().Be("In-memory message");
+        }
+
+        [Fact]
+        public async Task GetChatHistoryByExternalIdAsync_HistoryNotInMemory_LoadsPersistedChatHistory()
+        {
+            // Arrange
+            var title = "Test Load Persisted History";
+            var createdThread = await CreateTestChatThreadAsync(title);
+            await AddTestUserMessageToThreadAsync(createdThread, "Persisted message");
+
+            // Simulate clearing the in-memory cache to force a load from persistence
+            await _memoryStore.RemoveChatHistoryAsync(createdThread.ExternalId);
+
+            // Act
+            var loadedHistory = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
+
+            // Assert
+            loadedHistory.Should().NotBeNull();
+            loadedHistory.Should().ContainSingle()
+                .Which.Content.Should().Be("Persisted message");
+        }
+
+        [Fact]
+        public async Task AddUserMessageAsync_ValidMessage_AddsMessageToChatHistory()
+        {
+            // Arrange
+            var title = "Test Add User Message";
+            var createdThread = await CreateTestChatThreadAsync(title);
+            var userMessage = "Hello, this is a user message.";
+
+            // Act
+            await AddTestUserMessageToThreadAsync(createdThread, userMessage);
+            var history = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
+
+            // Assert
+            history.Should().NotBeNull();
+            history.Should().ContainSingle()
                 .Which.Content.Should().Be(userMessage);
         }
 
         [Fact]
-        public async Task AddBotMessageAsync_ValidMessage_ShouldAddToChatHistory()
+        public async Task PruneInactiveThreads_InactiveThread_RemovesThreadFromMemory()
         {
-            var agentExternalId = _context.GetFirstAgentExternalId();
-            var createRequest = new CreateChatThreadRequest
-            {
-                Title = "Test Add Bot Message",
-                AgentExternalId = agentExternalId,
-                UserId = "TestUser"
-            };
-            var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
-
-            string botMessage = "Hello, this is a bot message.";
-            await _chatHistoryManager.AddBotMessageAsync(createdThread.ExternalId, botMessage);
-
-            var result = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
-            result.Should().NotBeNull();
-            result.Should().ContainSingle()
-                .Which.Content.Should().Be(botMessage);
-        }
-
-        [Fact]
-        public async Task PruneInactiveThreads_ShouldRemoveInactiveThreads()
-        {
-            // 1. Arrange (Set up data in the past using TestDateTimeProvider)
-            var agentExternalId = _context.GetFirstAgentExternalId();
-            var createRequest = new CreateChatThreadRequest
-            {
-                Title = "Test Prune Inactive Threads",
-                AgentExternalId = agentExternalId,
-                UserId = "TestUser"
-            };
-
-            var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
+            // Arrange
+            var title = "Test Prune Inactive Threads";
+            var createdThread = await CreateTestChatThreadAsync(title);
 
             // Get the TestDateTimeProvider
             var dateTimeProvider = _fixture.ServiceProvider.GetRequiredService<IDateTimeProvider>() as TestDateTimeProvider;
             dateTimeProvider.Should().NotBeNull();
 
             var pastTime = DateTime.UtcNow.AddDays(-1);
-            dateTimeProvider.Now = pastTime; // Set Now to past time
+            dateTimeProvider.Now = pastTime; // Arrange: Set current time to the past
 
-            // Access the chat history to create the ChatThreadRecord with the past LastAccessed
+            // Access the chat history to create a record with the old LastAccessed timestamp
             await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
 
-
-            // 2. Act (Advance time and call PruneInactiveThreads)
+            // Act: Advance time and invoke pruning
             var currentTime = DateTime.UtcNow;
-            dateTimeProvider.Now = currentTime; // Set Now to current time
+            dateTimeProvider.Now = currentTime; // Act: Set current time to now
 
             if (_memoryStore is InMemoryChatMemoryStore inMemoryStore)
             {
                 await inMemoryStore.PruneInactiveThreadsAsync(TimeSpan.FromMinutes(30), dateTimeProvider.Now);
             }
 
-            // 3. Assert
-            (await _memoryStore.ExistsAsync(createdThread.ExternalId)).Should().BeFalse();
+            // Assert
+            (await _memoryStore.ExistsAsync(createdThread.ExternalId))
+                .Should().BeFalse("because the history was pruned due to inactivity.");
         }
 
         [Fact]
-        public async Task ClearHistory_ShouldRemoveAllMessages()
+        public async Task ClearHistory_ThreadExists_RemovesThreadFromMemory()
+        {
+            // Arrange
+            var title = "Test Clear History";
+            var createdThread = await CreateTestChatThreadAsync(title);
+            await AddTestUserMessageToThreadAsync(createdThread, "First user message");
+            await AddTestUserMessageToThreadAsync(createdThread, "Second user message");
+
+            // Act
+            _chatHistoryManager.ClearHistory(createdThread.ExternalId);
+
+            // Assert
+            var exists = await _chatHistoryManager.MemoryContainsThread(createdThread.ExternalId);
+            exists.Should().BeFalse("because the history was cleared from memory.");
+        }
+
+        // Helper method to create a chat thread
+        private async Task<ChatThreadDto> CreateTestChatThreadAsync(string title)
         {
             var agentExternalId = _context.GetFirstAgentExternalId();
-            var createRequest = new CreateChatThreadRequest
+            var request = new CreateChatThreadRequest
             {
-                Title = "Test Clear History",
+                Title = title,
                 AgentExternalId = agentExternalId,
                 UserId = "TestUser"
             };
-            var createdThread = await _chatHistoryManager.CreateThreadAsync(createRequest);
+            return await _chatHistoryManager.CreateThreadAsync(request);
+        }
 
-            await _chatHistoryManager.AddUserMessageAsync(createdThread.ExternalId, "First user message");
-            await _chatHistoryManager.AddBotMessageAsync(createdThread.ExternalId, "First bot message");
-
-            _chatHistoryManager.ClearHistory(createdThread.ExternalId);
-
-            var memoryContainsThread = await _chatHistoryManager.MemoryContainsThread(createdThread.ExternalId);
-            memoryContainsThread.Should().BeFalse("because the history was cleared from memory.");
+        // Helper method to add a user message to a chat thread
+        private async Task AddTestUserMessageToThreadAsync(ChatThreadDto thread, string message)
+        {
+            var messageContent = new ChatMessageContent(AuthorRole.User, message);
+            await _chatHistoryManager.AddMessageAsync(thread.ExternalId, messageContent);
         }
     }
 }
