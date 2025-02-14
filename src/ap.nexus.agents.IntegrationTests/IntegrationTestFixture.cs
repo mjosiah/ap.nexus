@@ -57,7 +57,7 @@ namespace ap.nexus.agents.IntegrationTests
             DbContext.Database.EnsureCreated();
 
             // Seed the database with initial test data.
-            DatabaseSeeder.Seed(DbContext);
+            TestDatabaseSeeder.Seed(DbContext);
         }
 
         public void Dispose()

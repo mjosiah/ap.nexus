@@ -2,9 +2,9 @@
 using ap.nexus.agents.domain.Entities;
 using ap.nexus.agents.infrastructure.Data;
 
-namespace ap.nexus.agents.IntegrationTests
+namespace ap.nexus.agents.infrastructure
 {
-    public static class TestDatabaseSeeder
+    public static class DatabaseSeeder
     {
         public static void Seed(AgentsDbContext context)
         {

@@ -21,7 +21,6 @@ namespace ap.nexus.agents.infrastructure.Extensions
 
             services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 
-           
 
             return services;
         }
