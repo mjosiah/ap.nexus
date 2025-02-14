@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using ap.nexus.agents.infrastructure.Data.Repositories;
 using ap.nexus.agents.infrastructure.DateTimeProviders;
+using Microsoft.Data.Sqlite;
 
 namespace ap.nexus.agents.infrastructure.Extensions
 {
@@ -19,6 +20,8 @@ namespace ap.nexus.agents.infrastructure.Extensions
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
             services.AddTransient<IDateTimeProvider, DateTimeProvider>();
+
+           
 
             return services;
         }

@@ -1,10 +1,13 @@
 ﻿using ap.nexus.abstractions.Agents.DTOs;
 using ap.nexus.abstractions.Agents.Interfaces;
+using Azure.Core;
+using Azure;
 using FastEndpoints;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace ap.nexus.agents.api.Endpoints
 {
@@ -42,12 +45,22 @@ namespace ap.nexus.agents.api.Endpoints
 
         public override void Configure()
         {
+            
+            var messageContent = new ChatMessageContent(AuthorRole.User, "This is a polymorphic message.");
+            var textContent = new TextContent { Text = "Sample text content" };
+            var imageContent = new ImageContent { Uri = new Uri("http://example.com/image.jpg") };
+
+            messageContent.Items.Add(textContent);
+            messageContent.Items.Add(imageContent);
+
+            var request = new ChatRequest { AgentExternalId = Guid.NewGuid(), ThreadExternalId = Guid.NewGuid(), Message = messageContent};
+
             Post("/chat");
             AllowAnonymous();
-            Options(x =>
-            {
-                x.WithSummary("Handles chat requests using Semantic Kernel agents.")
-                 .WithDescription("Processes user chat messages through a specified agent.");
+            Summary(s => {
+                s.Summary = "Handles chat requests using Semantic Kernel agents.";
+                s.Description = "Handles chat requests using Semantic Kernel agents.";
+                s.RequestExamples.Add(new FastEndpoints.RequestExample(JsonSerializer.Serialize(request, new JsonSerializerOptions { WriteIndented = true })));
             });
         }
 
