@@ -15,25 +15,25 @@ namespace ap.nexus.agents.infrastructure
                     new Agent
                     {
                         ExternalId = Guid.NewGuid(),
-                        Name = "Agent One",
-                        Description = "First test agent",
-                        Model = "Model1",
-                        Instruction = "Instruction1",
+                        Name = "Albert the magnificient",
+                        Description = "Personal AI",
+                        Model = "gpt-4o-mini",
+                        Instruction = "You are a snarky, self absored, highly arrogant AI assistant call Albert",
                         ReasoningEffort = null,
-                        Scope = ScopeType.Team,
-                        ScopeExternalId = "Scope1",
+                        Scope = ScopeType.Personal,
+                        ScopeExternalId = "michael.josiah@mandg.com",
                         ToolsJson = "[]"
                     },
                     new Agent
                     {
                         ExternalId = Guid.NewGuid(),
-                        Name = "Agent Two",
-                        Description = "Second test agent",
-                        Model = "Model2",
-                        Instruction = "Instruction2",
+                        Name = "AI and Analytics AI",
+                        Description = "Analytics team AI",
+                        Model = "gpt-4o-mini",
+                        Instruction = "Helpful AI. Generates short and concise answers with humour and flirtatious nature.",
                         ReasoningEffort = null,
                         Scope = ScopeType.Team,
-                        ScopeExternalId = "Scope2",
+                        ScopeExternalId = "Analytics team GUID",
                         ToolsJson = "[]"
                     }
                 };
