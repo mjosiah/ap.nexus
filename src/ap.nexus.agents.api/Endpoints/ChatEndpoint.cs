@@ -1,7 +1,6 @@
 ﻿using ap.nexus.abstractions.Agents.DTOs;
 using ap.nexus.abstractions.Agents.Interfaces;
-using Azure.Core;
-using Azure;
+using ap.nexus.agents.application.Services.ChatServices;
 using FastEndpoints;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -33,31 +32,25 @@ namespace ap.nexus.agents.api.Endpoints
         private readonly IKernelBuilder _kernelBuilder;
         private IChatCompletionService? _chatCompletionService;
         private readonly IConfiguration _configuration;
+        private readonly IChatHistoryManager _chatHistoryManager;
 
-        public ChatEndpoint(IAgentService agentService, IThreadService threadService, IMessageService messageService, IConfiguration configuration)
+        public ChatEndpoint(IAgentService agentService, IThreadService threadService, IMessageService messageService, IChatHistoryManager chatHistoryManager, IConfiguration configuration)
         {
             _agentService = agentService;
             _threadService = threadService;
             _messageService = messageService;
             _configuration = configuration;
-
+            _chatHistoryManager = chatHistoryManager;
         }
 
         public override void Configure()
         {
-            
-            var messageContent = new ChatMessageContent(AuthorRole.User, "This is a polymorphic message.");
-            var textContent = new TextContent { Text = "Sample text content" };
-            var imageContent = new ImageContent { Uri = new Uri("http://example.com/image.jpg") };
-
-            messageContent.Items.Add(textContent);
-            messageContent.Items.Add(imageContent);
-
-            var request = new ChatRequest { AgentExternalId = Guid.NewGuid(), ThreadExternalId = Guid.NewGuid(), Message = messageContent};
+            var request = CreateSampleChatRequest();
 
             Post("/chat");
             AllowAnonymous();
-            Summary(s => {
+            Summary(s =>
+            {
                 s.Summary = "Handles chat requests using Semantic Kernel agents.";
                 s.Description = "Handles chat requests using Semantic Kernel agents.";
                 s.RequestExamples.Add(new FastEndpoints.RequestExample(JsonSerializer.Serialize(request, new JsonSerializerOptions { WriteIndented = true })));
@@ -66,6 +59,7 @@ namespace ap.nexus.agents.api.Endpoints
 
         public override async Task HandleAsync(ChatRequest req, CancellationToken ct)
         {
+            // Retrieve the agent and ensure it exists.
             var agent = await _agentService.GetAgentByExternalIdAsync(req.AgentExternalId);
             if (agent == null)
             {
@@ -74,70 +68,79 @@ namespace ap.nexus.agents.api.Endpoints
                 return;
             }
 
-            // Get OpenAI configuration from IConfiguration
+            // Validate OpenAI configuration.
             var modelId = _configuration["OpenAI:ModelId"];
             var endpoint = _configuration["OpenAI:Endpoint"];
             var apiKey = _configuration["OpenAI:ApiKey"];
-
             if (string.IsNullOrEmpty(modelId) || string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(apiKey))
             {
                 AddError("OpenAI configuration is missing. Check your configuration.");
                 ThrowIfAnyErrors();
                 return;
             }
-            // Create a kernel with Azure OpenAI chat completion
+
+            // Build the kernel with Azure OpenAI chat completion.
             var builder = Kernel.CreateBuilder().AddAzureOpenAIChatCompletion(modelId, endpoint, apiKey);
-            // Add enterprise components
             builder.Services.AddLogging(services => services.AddConsole().SetMinimumLevel(LogLevel.Trace));
-
-            // Build the kernel
             Kernel kernel = builder.Build();
-            var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+            _chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
 
-            // **Agent Building:** Construct the system prompt
-            string systemPrompt = $@"{agent.Instruction}";
-
-            var history = new ChatHistory();
-            history.AddSystemMessage(systemPrompt);
-
-            Guid threadExternalId = req.ThreadExternalId ?? Guid.NewGuid();
-
-            var thread = await _threadService.GetThreadByExternalIdAsync(threadExternalId);
-            if (thread == null)
+            // Determine the thread to use.
+            Guid threadExternalId;
+            ChatHistory? chatHistory = null;
+            bool isNewThread = false;
+            if (req.ThreadExternalId.HasValue)
             {
-                var createThreadRequest = new CreateChatThreadRequest {AgentExternalId = agent.ExternalId };
-                thread = await _threadService.CreateThreadAsync(createThreadRequest);
+                threadExternalId = req.ThreadExternalId.Value;
+                chatHistory = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(threadExternalId);
+            }
+            else
+            {
+                threadExternalId = Guid.NewGuid();
             }
 
-            var previousMessages = await _messageService.GetMessagesByThreadExternalIdAsync(threadExternalId);
-
-            foreach (var msg in previousMessages)
+            // If no chat history exists, create a new thread.
+            if (chatHistory == null)
             {
-                history.AddMessage(msg.Role, msg.Content);
+                var createThreadRequest = new CreateChatThreadRequest { AgentExternalId = agent.ExternalId };
+                var threadDto = await _chatHistoryManager.CreateThreadAsync(createThreadRequest);
+                threadExternalId = threadDto.ExternalId;
+                isNewThread = true;
             }
 
-            history.AddMessage(req.Message.Role, req.Message.Content);
-
-            // Enable planning
-            OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
+            // If this is a new thread, add the system prompt from the agent.
+            if (isNewThread)
             {
-                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-            };
+                var systemMessage = new ChatMessageContent(AuthorRole.System, agent.Instruction);
+                await _chatHistoryManager.AddMessageAsync(threadExternalId, systemMessage);
+            }
 
-            var result = await _chatCompletionService.GetChatMessageContentAsync(
-                history,
-                executionSettings: openAIPromptExecutionSettings,
-                kernel: kernel);
+            // Add the user's message.
+            await _chatHistoryManager.AddMessageAsync(threadExternalId, req.Message);
+            chatHistory = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(threadExternalId);
 
-            var responseContent = result.Content ?? string.Empty;
-            var responseRole = result.Role;
+            // Execute the chat completion.
+            var executionSettings = new OpenAIPromptExecutionSettings { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() };
+            var result = await _chatCompletionService.GetChatMessageContentAsync(chatHistory, executionSettings: executionSettings, kernel: kernel);
 
-            var responseMessage = new ChatMessageContent { Content = responseContent, Role = responseRole };
+            // Create and persist the response message.
+            var responseMessage = new ChatMessageContent(result.Role, result.Content ?? string.Empty);
+            await _chatHistoryManager.AddMessageAsync(threadExternalId, responseMessage);
 
-            await _messageService.AddMessageAsync(req.Message, threadExternalId);
-            await _messageService.AddMessageAsync(responseMessage, threadExternalId);
-
+            // Send the final response.
             await SendAsync(new ChatResponse { Response = responseMessage, ThreadExternalId = threadExternalId }, cancellation: ct);
+        }
+
+        private ChatRequest CreateSampleChatRequest()
+        {
+            var messageContent = new ChatMessageContent(AuthorRole.User, "What is your name?");
+
+            return new ChatRequest
+            {
+                AgentExternalId = Guid.NewGuid(),
+                ThreadExternalId = Guid.NewGuid(),
+                Message = messageContent
+            };
         }
     }
 }
