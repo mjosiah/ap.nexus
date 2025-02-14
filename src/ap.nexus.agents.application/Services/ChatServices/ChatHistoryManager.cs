@@ -16,6 +16,7 @@ namespace ap.nexus.agents.application.Services.ChatServices
     {
         Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request);
         Task<ChatHistory?> GetChatHistoryByExternalIdAsync(Guid externalId);
+        Task AddSystemMessageAsync(Guid externalId, ChatMessageContent chatMessage);
         Task AddMessageAsync(Guid externalId, ChatMessageContent chatMessage);
         void ClearHistory(Guid threadExternalId);
         Task<bool> MemoryContainsThread(Guid externalId);
@@ -112,6 +113,36 @@ namespace ap.nexus.agents.application.Services.ChatServices
         {
             return _memoryStore.ExistsAsync(externalId);
         }
+
+        public async Task AddSystemMessageAsync(Guid externalId, ChatMessageContent chatMessage)
+        {
+            if (chatMessage.Role != AuthorRole.System)
+            {
+                _logger.LogWarning("Attempted to add a non-system message as a system message for thread {ExternalId}.", externalId);
+                throw new ArgumentException("Only messages with AuthorRole.System can be added as system messages.");
+            }
+
+            var chatHistory = await GetChatHistoryByExternalIdAsync(externalId);
+            if (chatHistory == null)
+            {
+                _logger.LogWarning("Chat history for thread {ExternalId} not found.", externalId);
+                throw new ArgumentException($"Thread with ExternalId {externalId} does not exist.");
+            }
+
+            // Ensure there is no existing system message
+            var existingSystemMessage = chatHistory.FirstOrDefault(m => m.Role == AuthorRole.System);
+            if (existingSystemMessage != null)
+            {
+                _logger.LogInformation("System message already exists for thread {ExternalId}. Skipping addition.", externalId);
+                return;
+            }
+
+            // Add the system message
+            chatHistory.Add(chatMessage);
+            await _memoryStore.SetChatHistoryAsync(externalId, chatHistory);
+            _logger.LogInformation("System message added to thread {ExternalId}.", externalId);
+        }
+
 
         private async Task PersistMessageAsync(Guid externalId, ChatMessageContent chatMessage)
         {

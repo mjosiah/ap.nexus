@@ -112,7 +112,7 @@ namespace ap.nexus.agents.api.Endpoints
             if (isNewThread)
             {
                 var systemMessage = new ChatMessageContent(AuthorRole.System, agent.Instruction);
-                await _chatHistoryManager.AddMessageAsync(threadExternalId, systemMessage);
+                await _chatHistoryManager.AddSystemMessageAsync(threadExternalId, systemMessage);
             }
 
             // Add the user's message.
