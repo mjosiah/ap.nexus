@@ -84,6 +84,7 @@ namespace ap.nexus.agents.api.Endpoints
             builder.Services.AddLogging(services => services.AddConsole().SetMinimumLevel(LogLevel.Trace));
             Kernel kernel = builder.Build();
             _chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+            
 
             // Determine the thread to use.
             Guid threadExternalId;
@@ -117,11 +118,11 @@ namespace ap.nexus.agents.api.Endpoints
 
             // Add the user's message.
             await _chatHistoryManager.AddMessageAsync(threadExternalId, req.Message);
-            chatHistory = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(threadExternalId);
 
             // Execute the chat completion.
+            var reducedMessages = await _chatHistoryManager.GetReducedChatHistoryAsync(threadExternalId,_chatCompletionService);
             var executionSettings = new OpenAIPromptExecutionSettings { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() };
-            var result = await _chatCompletionService.GetChatMessageContentAsync(chatHistory, executionSettings: executionSettings, kernel: kernel);
+            var result = await _chatCompletionService.GetChatMessageContentAsync(reducedMessages, executionSettings: executionSettings, kernel: kernel);
 
             // Create and persist the response message.
             var responseMessage = new ChatMessageContent(result.Role, result.Content ?? string.Empty);

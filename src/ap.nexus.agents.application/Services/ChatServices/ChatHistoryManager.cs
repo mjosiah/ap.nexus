@@ -20,6 +20,7 @@ namespace ap.nexus.agents.application.Services.ChatServices
         Task AddMessageAsync(Guid externalId, ChatMessageContent chatMessage);
         void ClearHistory(Guid threadExternalId);
         Task<bool> MemoryContainsThread(Guid externalId);
+        Task<ChatHistory> GetReducedChatHistoryAsync(Guid externalId, IChatCompletionService chatService);
     }
 
     public class ChatHistoryManager : IChatHistoryManager
@@ -47,6 +48,7 @@ namespace ap.nexus.agents.application.Services.ChatServices
 
         public async Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request)
         {
+
             ChatThreadDto threadDto = await _threadService.CreateThreadAsync(request);
             var chatHistory = new ChatHistory();
 
@@ -143,6 +145,29 @@ namespace ap.nexus.agents.application.Services.ChatServices
             _logger.LogInformation("System message added to thread {ExternalId}.", externalId);
         }
 
+        public async Task<ChatHistory> GetReducedChatHistoryAsync(Guid externalId, IChatCompletionService chatService)
+        {
+            // Retrieve full history  
+            var fullHistory = await GetChatHistoryByExternalIdAsync(externalId);
+            if (fullHistory == null) return null;
+
+            // Apply reduction logic
+            #pragma warning disable SKEXP0001
+            var reducer = new ChatHistorySummarizationReducer(chatService, 30, 50);
+            #pragma warning restore SKEXP0001
+            var reducedMessages = await reducer.ReduceAsync(fullHistory);
+
+            // If no reduction was performed, return the full history.
+            if (reducedMessages == null)
+            {
+                return fullHistory;
+            }
+
+            // Convert the IEnumerable<ChatMessageContent> to a ChatHistory.
+            ChatHistory reducedHistory = new ChatHistory();
+            reducedHistory.AddRange(reducedMessages);
+            return reducedHistory;
+        }
 
         private async Task PersistMessageAsync(Guid externalId, ChatMessageContent chatMessage)
         {
