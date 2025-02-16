@@ -184,5 +184,18 @@ namespace ap.nexus.agents.application.Services
                 throw new Exception("An error occurred while deleting the chat thread.", ex);
             }
         }
+
+        public async Task<bool> ThreadExternalIdExistsAsync(Guid externalId)
+        {
+            try
+            {
+                return await _chatThreadRepository.Query().AnyAsync(ct => ct.ExternalId == externalId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking existence of chat thread with ExternalId {ExternalId}", externalId);
+                throw;
+            }
+        }
     }
 }

@@ -41,7 +41,7 @@ namespace ap.nexus.agents.application.Services
                     ItemsJson = System.Text.Json.JsonSerializer.Serialize(message.Items),
                     ChatThreadId = chatThread.Id,
                     //UserId = message.UserId,
-                    Role = message.Role == AuthorRole.User ? Role.User : Role.Assistant,
+                    Role = message.Role == AuthorRole.User ? Role.User : (message.Role == AuthorRole.System ? Role.System : Role.Assistant),
                     MetadataJson = System.Text.Json.JsonSerializer.Serialize(message.Metadata),
                 };
 
@@ -178,7 +178,11 @@ namespace ap.nexus.agents.application.Services
             {
                 Content = message.Content,
                 Items = System.Text.Json.JsonSerializer.Deserialize<ChatMessageContentItemCollection>(message.ItemsJson) ?? new(),
-                Role = message.Role == Role.User ? AuthorRole.User : AuthorRole.Assistant,
+                Role = message.Role == Role.User
+                        ? AuthorRole.User
+                        : message.Role == Role.System
+                            ? AuthorRole.System
+                            : AuthorRole.Assistant,
             };
         }
     }

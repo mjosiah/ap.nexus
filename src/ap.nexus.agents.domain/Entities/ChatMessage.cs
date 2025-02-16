@@ -28,6 +28,7 @@ namespace ap.nexus.agents.domain.Entities
     public enum Role
     {
         User,
-        Assistant
+        Assistant,
+        System
     }
 }

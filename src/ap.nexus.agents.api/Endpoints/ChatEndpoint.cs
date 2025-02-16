@@ -5,6 +5,7 @@ using FastEndpoints;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Memory;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
@@ -93,7 +94,6 @@ namespace ap.nexus.agents.api.Endpoints
             if (req.ThreadExternalId.HasValue)
             {
                 threadExternalId = req.ThreadExternalId.Value;
-                chatHistory = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(threadExternalId);
             }
             else
             {
@@ -101,7 +101,7 @@ namespace ap.nexus.agents.api.Endpoints
             }
 
             // If no chat history exists, create a new thread.
-            if (chatHistory == null)
+            if (! await _chatHistoryManager.ThreadExists(threadExternalId))
             {
                 var createThreadRequest = new CreateChatThreadRequest { AgentExternalId = agent.ExternalId };
                 var threadDto = await _chatHistoryManager.CreateThreadAsync(createThreadRequest);
@@ -109,12 +109,8 @@ namespace ap.nexus.agents.api.Endpoints
                 isNewThread = true;
             }
 
-            // If this is a new thread, add the system prompt from the agent.
-            if (isNewThread)
-            {
-                var systemMessage = new ChatMessageContent(AuthorRole.System, agent.Instruction);
-                await _chatHistoryManager.AddSystemMessageAsync(threadExternalId, systemMessage);
-            }
+            var systemMessage = new ChatMessageContent(AuthorRole.System, agent.Instruction);
+            await _chatHistoryManager.AddSystemMessageAsync(threadExternalId, systemMessage);
 
             // Add the user's message.
             await _chatHistoryManager.AddMessageAsync(threadExternalId, req.Message);
@@ -125,7 +121,18 @@ namespace ap.nexus.agents.api.Endpoints
             var result = await _chatCompletionService.GetChatMessageContentAsync(reducedMessages, executionSettings: executionSettings, kernel: kernel);
 
             // Create and persist the response message.
-            var responseMessage = new ChatMessageContent(result.Role, result.Content ?? string.Empty);
+            #pragma warning disable SKEXP0001
+            var responseMessage = new ChatMessageContent
+            {
+                AuthorName = result.AuthorName ?? string.Empty,
+                Content = result.Content ?? string.Empty,
+                Items = result.Items,
+                Role = result.Role,
+                Metadata = result.Metadata,
+                ModelId = result.ModelId,
+            };
+            #pragma warning restore SKEXP0001 
+
             await _chatHistoryManager.AddMessageAsync(threadExternalId, responseMessage);
 
             // Send the final response.

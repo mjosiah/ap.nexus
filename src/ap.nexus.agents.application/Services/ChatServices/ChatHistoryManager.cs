@@ -16,6 +16,7 @@ namespace ap.nexus.agents.application.Services.ChatServices
     {
         Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request);
         Task<ChatHistory?> GetChatHistoryByExternalIdAsync(Guid externalId);
+        Task<bool> ThreadExists(Guid externalId);
         Task AddSystemMessageAsync(Guid externalId, ChatMessageContent chatMessage);
         Task AddMessageAsync(Guid externalId, ChatMessageContent chatMessage);
         void ClearHistory(Guid threadExternalId);
@@ -140,9 +141,10 @@ namespace ap.nexus.agents.application.Services.ChatServices
             }
 
             // Add the system message
-            chatHistory.Add(chatMessage);
+            chatHistory.Insert(0, chatMessage);
             await _memoryStore.SetChatHistoryAsync(externalId, chatHistory);
             _logger.LogInformation("System message added to thread {ExternalId}.", externalId);
+
         }
 
         public async Task<ChatHistory> GetReducedChatHistoryAsync(Guid externalId, IChatCompletionService chatService)
@@ -167,6 +169,26 @@ namespace ap.nexus.agents.application.Services.ChatServices
             ChatHistory reducedHistory = new ChatHistory();
             reducedHistory.AddRange(reducedMessages);
             return reducedHistory;
+        }
+
+        public async Task<bool> ThreadExists(Guid externalId)
+        {
+            // First, check if the thread is in the in‑memory store.
+            if (await _memoryStore.ExistsAsync(externalId))
+            {
+                _logger.LogInformation("Thread {ExternalId} exists in memory store.", externalId);
+                return true;
+            }
+
+            // If not in memory, check the database.
+            if (await _threadService.ThreadExternalIdExistsAsync(externalId))
+            {
+                _logger.LogInformation("Thread {ExternalId} exists in the database.", externalId);
+                return true;
+            }
+
+            _logger.LogWarning("Thread {ExternalId} does not exist in memory or in the database.", externalId);
+            return false;
         }
 
         private async Task PersistMessageAsync(Guid externalId, ChatMessageContent chatMessage)
