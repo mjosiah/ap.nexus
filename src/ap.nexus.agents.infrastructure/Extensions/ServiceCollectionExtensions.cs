@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using ap.nexus.agents.infrastructure.Data.Repositories;
 using ap.nexus.agents.infrastructure.DateTimeProviders;
-using Microsoft.Data.Sqlite;
+using ap.nexus.core.data;
 
 namespace ap.nexus.agents.infrastructure.Extensions
 {

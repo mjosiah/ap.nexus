@@ -3,7 +3,7 @@ using ap.nexus.abstractions.Agents.Enums;
 using ap.nexus.agents.application.Exceptions;
 using ap.nexus.agents.application.Services;
 using ap.nexus.agents.domain.Entities;
-using ap.nexus.agents.infrastructure.Data.Repositories;
+using ap.nexus.core.data;
 using FluentAssertions;
 using Moq;
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ap.nexus.core.data;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace ap.nexus.agents.infrastructure.Data.Repositories

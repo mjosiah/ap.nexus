@@ -1,10 +1,7 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using ap.nexus.abstractions.Agents.DTOs;
+﻿using ap.nexus.abstractions.Agents.DTOs;
 using ap.nexus.abstractions.Agents.Interfaces;
 using ap.nexus.agents.domain.Entities;
-using ap.nexus.agents.infrastructure.Data.Repositories;
+using ap.nexus.core.data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 

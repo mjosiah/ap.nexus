@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ap.nexus.agents.domain.Common
+namespace ap.nexus.core.domain
 {
     public class AuditableEntity
     {

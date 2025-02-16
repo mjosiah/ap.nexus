@@ -1,5 +1,5 @@
 ﻿using ap.nexus.abstractions.Agents.Enums;
-using ap.nexus.agents.domain.Common;
+using ap.nexus.core.domain;
 
 namespace ap.nexus.agents.domain.Entities
 {

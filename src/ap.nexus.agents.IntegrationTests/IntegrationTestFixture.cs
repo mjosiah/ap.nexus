@@ -9,6 +9,7 @@ using ap.nexus.agents.infrastructure.Data.Repositories;
 using Microsoft.Extensions.Logging;
 using ap.nexus.agents.infrastructure.DateTimeProviders;
 using ap.nexus.agents.application.Services.ChatServices;
+using ap.nexus.core.data;
 
 namespace ap.nexus.agents.IntegrationTests
 {

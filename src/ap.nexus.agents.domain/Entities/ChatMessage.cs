@@ -1,4 +1,4 @@
-﻿using ap.nexus.agents.domain.Common;
+﻿using ap.nexus.core.domain;
 using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace ap.nexus.agents.domain.Entities

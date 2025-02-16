@@ -21,6 +21,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ap.nexus.agents.Integration
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ap.nexus.core", "ap.nexus.core\ap.nexus.core.csproj", "{AE80B1CA-2B80-4999-B1AE-F3A7AE6A3DE0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ap.nexus.settingmanager", "ap.nexus.settingmanager\ap.nexus.settingmanager.csproj", "{91D7630E-685C-4C21-9825-E848EF59F82E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{E8D57303-D9E9-4C78-9227-16014CD4ED6C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +63,10 @@ Global
 		{AE80B1CA-2B80-4999-B1AE-F3A7AE6A3DE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE80B1CA-2B80-4999-B1AE-F3A7AE6A3DE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE80B1CA-2B80-4999-B1AE-F3A7AE6A3DE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91D7630E-685C-4C21-9825-E848EF59F82E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91D7630E-685C-4C21-9825-E848EF59F82E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91D7630E-685C-4C21-9825-E848EF59F82E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91D7630E-685C-4C21-9825-E848EF59F82E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -66,6 +74,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{E9D950E7-1B2E-4002-B1A9-0E597FF948E6} = {7B8BF15F-B49B-4828-9D6A-782DF22FC606}
 		{F15BEDAE-AD75-498D-821C-8E187DD4668A} = {7B8BF15F-B49B-4828-9D6A-782DF22FC606}
+		{91D7630E-685C-4C21-9825-E848EF59F82E} = {E8D57303-D9E9-4C78-9227-16014CD4ED6C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {856400CE-1DC1-4FAB-8772-F3A3DF3D60B2}

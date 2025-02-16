@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ap.nexus.abstractions\ap.nexus.abstractions.csproj" />
     <ProjectReference Include="..\ap.nexus.agents.infrastructure\ap.nexus.agents.infrastructure.csproj" />
+    <ProjectReference Include="..\ap.nexus.settingmanager\ap.nexus.settingmanager.csproj" />
   </ItemGroup>
 
 </Project>

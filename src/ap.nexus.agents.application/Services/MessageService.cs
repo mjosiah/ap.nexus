@@ -1,11 +1,11 @@
 ﻿using ap.nexus.abstractions.Agents.Interfaces;
 using ap.nexus.agents.application.Exceptions; // Your custom exceptions
 using ap.nexus.agents.domain.Entities;
-using ap.nexus.agents.infrastructure.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.SemanticKernel;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.ChatCompletion;
+using ap.nexus.core.data;
 
 namespace ap.nexus.agents.application.Services
 {
