@@ -3,7 +3,6 @@ using ap.nexus.settingmanager.Infrastructure.Data;
 using AP.Nexus.Core.Modularity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Configuration;
 using Microsoft.EntityFrameworkCore;
 using ap.nexus.core.data;
 using ap.nexus.settingmanager.Infrastructure.Data.Repositories;

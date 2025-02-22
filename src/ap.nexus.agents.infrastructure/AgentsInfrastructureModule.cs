@@ -1,7 +1,5 @@
-﻿using ap.nexus.agents.infrastructure.Data.Repositories;
-using ap.nexus.agents.infrastructure.Data;
+﻿using ap.nexus.agents.infrastructure.Data;
 using ap.nexus.agents.infrastructure.DateTimeProviders;
-using ap.nexus.core.data;
 using AP.Nexus.Core.Modularity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;

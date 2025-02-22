@@ -1,5 +1,4 @@
 using FastEndpoints;
-using ap.nexus.agents.infrastructure.Extensions;
 using FastEndpoints.Swagger;
 using StackExchange.Redis;
 using ap.nexus.agents.infrastructure.Data;
@@ -17,10 +16,6 @@ builder.Services.AddModule<SettingManagerApplicationModule>(builder.Configuratio
 
 builder.Services.AddModule<AgentsApplicationModule>(builder.Configuration);
 builder.Services.AddModule<AgentsInfrastructureModule>(builder.Configuration);
-
-// Register infrastructure services.
-//builder.Services.AddInfrastructureServices(builder.Configuration);
-
 
 // Add FastEndpoints.
 builder.Services.AddFastEndpoints()
