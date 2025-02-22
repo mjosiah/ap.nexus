@@ -2,6 +2,6 @@
 {
     public class BooleanSettingDefinition : SettingDefinition
     {
-        public BooleanSettingDefinition(string name) : base(name) { }
+        public BooleanSettingDefinition(string name) : base() { }
     }
 }

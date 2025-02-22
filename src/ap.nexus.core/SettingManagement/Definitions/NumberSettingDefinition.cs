@@ -6,6 +6,6 @@
         public double? Maximum { get; set; }
         public double? Step { get; set; }
 
-        public NumberSettingDefinition(string name) : base(name) { }
+        public NumberSettingDefinition(string name) : base() { }
     }
 }

@@ -70,5 +70,35 @@ namespace ap.nexus.settingmanager.Infrastructure.Data
                 await _settingRepository.SaveChangesAsync();
             }
         }
+
+        public async Task InitializeSettingsAsync(IEnumerable<ISettingDefinition> definitions, Guid? tenantId = null)
+        {
+            foreach (var definition in definitions)
+            {
+                // Check if setting exists
+                var existingSetting = await _settingRepository.FirstOrDefaultAsync(s =>
+                    s.Name == definition.Name &&
+                    s.TenantId == tenantId &&
+                    s.UserId == null);
+
+                // Only create if it doesn't exist
+                if (existingSetting == null && definition.DefaultValue != null)
+                {
+                    var setting = new Setting
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = definition.Name,
+                        Value = definition.DefaultValue.ToString(),
+                        TenantId = tenantId,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedBy = "system"
+                    };
+
+                    await _settingRepository.AddAsync(setting);
+                }
+            }
+
+            await _settingRepository.SaveChangesAsync();
+        }
     }
 }

@@ -4,7 +4,7 @@ namespace ap.nexus.core.Settings.Definitions
 {
     public class SettingDefinition : ISettingDefinition
     {
-        public string Name { get; private set; }
+        public string Name { get; set; }
         public string DisplayName { get; set; }
         public string Description { get; set; }
         public object DefaultValue { get; set; }
@@ -12,11 +12,6 @@ namespace ap.nexus.core.Settings.Definitions
         public bool IsNullable { get; set; }
         public string ProviderName { get; set; }
 
-        protected SettingDefinition(string name)
-        {
-            Name = name ?? throw new ArgumentNullException(nameof(name));
-            DisplayName = name;
-            ProviderName = "Default";
-        }
+       
     }
 }

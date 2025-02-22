@@ -6,7 +6,7 @@
         public int? MaxLength { get; set; }
         public IReadOnlyList<string> AllowedValues { get; set; }
 
-        public StringSettingDefinition(string name) : base(name) { }
+        public StringSettingDefinition(string name) : base() { }
     }
 
 }

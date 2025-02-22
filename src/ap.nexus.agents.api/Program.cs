@@ -1,19 +1,25 @@
 using FastEndpoints;
 using ap.nexus.agents.infrastructure.Extensions;
 using FastEndpoints.Swagger;
-using ap.nexus.agents.application.Extensions;
 using StackExchange.Redis;
 using ap.nexus.agents.infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using ap.nexus.agents.infrastructure;
+using ap.nexus.agents.application;
+using AP.Nexus.Core.Extensions;
+using ap.nexus.settingmanager.Application;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddModule<SettingManagerInfrastructureModule>(builder.Configuration);
+builder.Services.AddModule<SettingManagerApplicationModule>(builder.Configuration);
+
+
+builder.Services.AddModule<AgentsApplicationModule>(builder.Configuration);
 
 // Register infrastructure services.
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
-//Register application services.
-builder.Services.AddApplicationServices(builder.Configuration);
 
 // Add FastEndpoints.
 builder.Services.AddFastEndpoints()
@@ -32,6 +38,8 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<AgentsDbContext>(); 
     context.Database.Migrate(); DatabaseSeeder.Seed(context); 
 }
+
+await app.Services.InitializeModulesAsync();
 
 // Configure middleware.
 app.UseFastEndpoints()
