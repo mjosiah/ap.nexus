@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ap.nexus.core.Settings.Definitions
+﻿namespace ap.nexus.abstractions.Frameworks.SettingManagement
 {
     public interface ISettingDefinition
     {
@@ -13,6 +7,7 @@ namespace ap.nexus.core.Settings.Definitions
         string Description { get; }
         object DefaultValue { get; }
         bool IsEncrypted { get; }
+        bool IsNullable { get; }
         string ProviderName { get; }
     }
 }

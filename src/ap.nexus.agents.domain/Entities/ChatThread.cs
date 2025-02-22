@@ -7,7 +7,7 @@ namespace ap.nexus.agents.domain.Entities
         public Guid ExternalId { get; set; } 
 
         public string Title { get; set; } = string.Empty;
-        public int AgentId { get; set; }
+        public Guid AgentId { get; set; }
 
         public Guid AgentExternalId { get; set; } 
 

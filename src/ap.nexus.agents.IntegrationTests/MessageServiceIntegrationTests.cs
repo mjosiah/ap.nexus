@@ -145,7 +145,7 @@ namespace ap.nexus.agents.IntegrationTests
         // Generic helper method to retrieve a chat message based on multiple criteria.
         private async Task<ChatMessage?> GetTestChatMessageAsync(
             Guid? threadExternalId = null,
-            int? threadId = null,
+            Guid? threadId = null,
             string? content = null,
             Guid? messageExternalId = null)
         {

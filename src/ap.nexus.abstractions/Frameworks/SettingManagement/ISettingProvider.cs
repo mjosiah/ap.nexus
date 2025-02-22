@@ -1,4 +1,4 @@
-﻿namespace ap.nexus.core.Settings
+﻿namespace ap.nexus.abstractions.Frameworks.SettingManagement
 {
     public interface ISettingProvider
     {

@@ -24,7 +24,7 @@ namespace ap.nexus.abstractions.Agents.Interfaces
         /// </summary>
         /// <param name="threadId">The internal ID of the thread.</param>
         /// <returns>A Task representing the asynchronous operation, which returns a list of ChatMessageContent objects.</returns>
-        Task<List<ChatMessageContent>> GetMessagesByThreadIdAsync(int threadId);
+        Task<List<ChatMessageContent>> GetMessagesByThreadIdAsync(Guid threadId);
 
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace ap.nexus.abstractions.Agents.Interfaces
         /// </summary>
         /// <param name="message">The updated message content.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        Task UpdateMessageAsync(int messageId, ChatMessageContent message);
+        Task UpdateMessageAsync(Guid messageId, ChatMessageContent message);
 
         /// <summary>
         /// Deletes a message by its ID.

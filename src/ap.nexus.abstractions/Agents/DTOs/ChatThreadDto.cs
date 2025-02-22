@@ -8,7 +8,7 @@ namespace ap.nexus.abstractions.Agents.DTOs
 {
     public class ChatThreadDto
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public Guid ExternalId { get; set; } 
         public string Title { get; set; } = string.Empty;
         public Guid AgentExternalId { get; set; }

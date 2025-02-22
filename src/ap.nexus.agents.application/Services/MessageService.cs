@@ -79,7 +79,7 @@ namespace ap.nexus.agents.application.Services
             }
         }
 
-        public async Task<List<ChatMessageContent>> GetMessagesByThreadIdAsync(int threadId)
+        public async Task<List<ChatMessageContent>> GetMessagesByThreadIdAsync(Guid threadId)
         {
             try
             {
@@ -117,7 +117,7 @@ namespace ap.nexus.agents.application.Services
             }
         }
 
-        public async Task UpdateMessageAsync(int messageId, ChatMessageContent message)
+        public async Task UpdateMessageAsync(Guid messageId, ChatMessageContent message)
         {
             try
             {

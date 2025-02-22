@@ -1,4 +1,4 @@
-﻿using ap.nexus.core.Settings;
+﻿using ap.nexus.abstractions.Frameworks.SettingManagement;
 using ap.nexus.settingmanager.Domain.Entities;
 using ap.nexus.settingmanager.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;

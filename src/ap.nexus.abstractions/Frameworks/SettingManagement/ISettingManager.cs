@@ -1,11 +1,4 @@
-﻿using ap.nexus.core.Settings.Definitions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ap.nexus.settingmanager.Application
+﻿namespace ap.nexus.abstractions.Frameworks.SettingManagement
 {
     public interface ISettingManager
     {

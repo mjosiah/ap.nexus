@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using ap.nexus.abstractions.Frameworks.SettingManagement;
 
 namespace ap.nexus.core.Settings.Definitions
 {
@@ -13,6 +9,7 @@ namespace ap.nexus.core.Settings.Definitions
         public string Description { get; set; }
         public object DefaultValue { get; set; }
         public bool IsEncrypted { get; set; }
+        public bool IsNullable { get; set; }
         public string ProviderName { get; set; }
 
         protected SettingDefinition(string name)

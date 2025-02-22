@@ -10,7 +10,7 @@ namespace ap.nexus.agents.domain.Entities
         public string Content { get; set; } = string.Empty; //A convenience property to get or set the text of the first item.
         
         public string ItemsJson { get; set; } = string.Empty; // Serialised ChatMessageContentItemCollection from semantic kernel.
-        public int ChatThreadId { get; set; }
+        public Guid ChatThreadId { get; set; }
 
         public string UserId { get; set; } = string.Empty; // Links to the User
 

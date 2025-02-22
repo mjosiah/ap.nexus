@@ -1,5 +1,5 @@
-﻿using ap.nexus.core.Settings.Definitions;
-using ap.nexus.settingmanager.Application;
+﻿using ap.nexus.abstractions.Frameworks.SettingManagement;
+using ap.nexus.core.Settings.Definitions;
 
 namespace ap.nexus.agents.application
 {
