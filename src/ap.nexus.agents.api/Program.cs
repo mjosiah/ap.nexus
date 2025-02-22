@@ -16,9 +16,10 @@ builder.Services.AddModule<SettingManagerApplicationModule>(builder.Configuratio
 
 
 builder.Services.AddModule<AgentsApplicationModule>(builder.Configuration);
+builder.Services.AddModule<AgentsInfrastructureModule>(builder.Configuration);
 
 // Register infrastructure services.
-builder.Services.AddInfrastructureServices(builder.Configuration);
+//builder.Services.AddInfrastructureServices(builder.Configuration);
 
 
 // Add FastEndpoints.

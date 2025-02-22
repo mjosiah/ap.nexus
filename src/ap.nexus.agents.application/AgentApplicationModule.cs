@@ -25,9 +25,9 @@ namespace ap.nexus.agents.application
 
         public override async Task InitializeAsync()
         {
-            // Get dependencies using GetRequiredService() which is available in NexusModule
-            var settingManager = GetRequiredService<ISettingManager>();
-            var settingStore = GetRequiredService<ISettingStore>();
+            using var scope = ServiceProvider.CreateScope();
+            var settingManager = scope.ServiceProvider.GetRequiredService<ISettingManager>();
+            var settingStore = scope.ServiceProvider.GetRequiredService<ISettingStore>();
 
             var definitions = AgentsSettingDefinitions.GetDefinitions();
             await settingManager.DefineSettingsAsync(definitions);
@@ -39,5 +39,6 @@ namespace ap.nexus.agents.application
 
             await base.InitializeAsync();
         }
+
     }
 }

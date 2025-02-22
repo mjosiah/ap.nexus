@@ -18,7 +18,11 @@ namespace ap.nexus.agents.infrastructure
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
             // Register the generic repository.
-            services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+            services.Scan(scan => scan
+            .FromAssemblyOf<AgentsDbContext>()
+            .AddClasses(classes => classes.Where(type => type.Namespace.Contains("ap.nexus.settingmanager")))
+            .AsImplementedInterfaces()
+            .WithScopedLifetime());
 
             services.AddTransient<IDateTimeProvider, DateTimeProvider>();
         }

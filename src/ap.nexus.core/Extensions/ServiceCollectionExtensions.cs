@@ -16,6 +16,7 @@ namespace AP.Nexus.Core.Extensions
 
             // Register the module itself
             services.AddSingleton(module);
+            services.AddSingleton<NexusModule>(module);
 
             // Configure services for the module
             module.ConfigureServices(services,configuration);
