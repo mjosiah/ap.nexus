@@ -12,6 +12,6 @@ namespace ap.nexus.abstractions.Agents.DTOs
         public List<ToolConfigurationDto> Tools { get; set; } = new();
         public Dictionary<string, string> Metadata { get; set; } = new();
         public ScopeType Scope { get; set; }
-        public string ScopeExternalId { get; set; } = string.Empty; // Holds Team, User, or Enterprise identifier
+        public string ScopeId { get; set; } = string.Empty; // Holds Team, User, or Enterprise identifier
     }
 }

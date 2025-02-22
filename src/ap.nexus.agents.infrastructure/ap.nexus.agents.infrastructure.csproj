@@ -27,4 +27,8 @@
     <ProjectReference Include="..\ap.nexus.agents.domain\ap.nexus.agents.domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 </Project>

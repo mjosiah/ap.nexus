@@ -9,15 +9,7 @@ namespace ap.nexus.abstractions.Agents.Interfaces
         /// </summary>
         /// <param name="message">The message content to store.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        Task AddMessageAsync(ChatMessageContent message, Guid threadExternalId);
-
-
-        /// <summary>
-        /// Retrieves messages by thread's EXTERNAL ID.
-        /// </summary>
-        /// <param name="threadExternalId">The globally unique external ID of the thread.</param>
-        /// <returns>A Task representing the asynchronous operation, which returns a list of ChatMessageContent objects.</returns>
-        Task<List<ChatMessageContent>> GetMessagesByThreadExternalIdAsync(Guid threadExternalId);
+        Task AddMessageAsync(ChatMessageContent message, Guid threadId);
 
         /// <summary>
         /// Retrieves messages by thread's INTERNAL ID.

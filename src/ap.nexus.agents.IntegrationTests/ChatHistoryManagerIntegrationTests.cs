@@ -44,19 +44,19 @@ namespace ap.nexus.agents.IntegrationTests
 
             // Assert
             createdThread.Should().NotBeNull();
-            createdThread.ExternalId.Should().NotBeEmpty();
+            createdThread.Id.Should().NotBeEmpty();
             createdThread.Title.Should().Be(title);
         }
 
         [Fact]
-        public async Task GetChatHistoryByExternalIdAsync_EmptyHistory_ReturnsEmptyChatHistory()
+        public async Task GetChatHistoryByIdAsync_EmptyHistory_ReturnsEmptyChatHistory()
         {
             // Arrange
             var title = "Test Get Empty History";
             var createdThread = await CreateTestChatThreadAsync(title);
 
             // Act
-            var history = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
+            var history = await _chatHistoryManager.GetChatHistoryByIdAsync(createdThread.Id);
 
             // Assert
             history.Should().NotBeNull();
@@ -64,7 +64,7 @@ namespace ap.nexus.agents.IntegrationTests
         }
 
         [Fact]
-        public async Task GetChatHistoryByExternalIdAsync_HistoryInMemory_ReturnsCachedChatHistory()
+        public async Task GetChatHistoryByIdAsync_HistoryInMemory_ReturnsCachedChatHistory()
         {
             // Arrange
             var title = "Test Get In-Memory History";
@@ -72,7 +72,7 @@ namespace ap.nexus.agents.IntegrationTests
             await AddTestUserMessageToThreadAsync(createdThread, "In-memory message");
 
             // Act
-            var cachedHistory = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
+            var cachedHistory = await _chatHistoryManager.GetChatHistoryByIdAsync(createdThread.Id);
 
             // Assert
             cachedHistory.Should().NotBeNull();
@@ -81,7 +81,7 @@ namespace ap.nexus.agents.IntegrationTests
         }
 
         [Fact]
-        public async Task GetChatHistoryByExternalIdAsync_HistoryNotInMemory_LoadsPersistedChatHistory()
+        public async Task GetChatHistoryByIdAsync_HistoryNotInMemory_LoadsPersistedChatHistory()
         {
             // Arrange
             var title = "Test Load Persisted History";
@@ -89,10 +89,10 @@ namespace ap.nexus.agents.IntegrationTests
             await AddTestUserMessageToThreadAsync(createdThread, "Persisted message");
 
             // Simulate clearing the in-memory cache to force a load from persistence
-            await _memoryStore.RemoveChatHistoryAsync(createdThread.ExternalId);
+            await _memoryStore.RemoveChatHistoryAsync(createdThread.Id);
 
             // Act
-            var loadedHistory = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
+            var loadedHistory = await _chatHistoryManager.GetChatHistoryByIdAsync(createdThread.Id);
 
             // Assert
             loadedHistory.Should().NotBeNull();
@@ -110,7 +110,7 @@ namespace ap.nexus.agents.IntegrationTests
 
             // Act
             await AddTestUserMessageToThreadAsync(createdThread, userMessage);
-            var history = await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
+            var history = await _chatHistoryManager.GetChatHistoryByIdAsync(createdThread.Id);
 
             // Assert
             history.Should().NotBeNull();
@@ -133,7 +133,7 @@ namespace ap.nexus.agents.IntegrationTests
             dateTimeProvider.Now = pastTime; // Arrange: Set current time to the past
 
             // Access the chat history to create a record with the old LastAccessed timestamp
-            await _chatHistoryManager.GetChatHistoryByExternalIdAsync(createdThread.ExternalId);
+            await _chatHistoryManager.GetChatHistoryByIdAsync(createdThread.Id);
 
             // Act: Advance time and invoke pruning
             var currentTime = DateTime.UtcNow;
@@ -145,7 +145,7 @@ namespace ap.nexus.agents.IntegrationTests
             }
 
             // Assert
-            (await _memoryStore.ExistsAsync(createdThread.ExternalId))
+            (await _memoryStore.ExistsAsync(createdThread.Id))
                 .Should().BeFalse("because the history was pruned due to inactivity.");
         }
 
@@ -159,21 +159,21 @@ namespace ap.nexus.agents.IntegrationTests
             await AddTestUserMessageToThreadAsync(createdThread, "Second user message");
 
             // Act
-            _chatHistoryManager.ClearHistory(createdThread.ExternalId);
+            _chatHistoryManager.ClearHistory(createdThread.Id);
 
             // Assert
-            var exists = await _chatHistoryManager.MemoryContainsThread(createdThread.ExternalId);
+            var exists = await _chatHistoryManager.MemoryContainsThread(createdThread.Id);
             exists.Should().BeFalse("because the history was cleared from memory.");
         }
 
         // Helper method to create a chat thread
         private async Task<ChatThreadDto> CreateTestChatThreadAsync(string title)
         {
-            var agentExternalId = _context.GetFirstAgentExternalId();
+            var agentId = _context.GetFirstAgentId();
             var request = new CreateChatThreadRequest
             {
                 Title = title,
-                AgentExternalId = agentExternalId,
+                AgentId = agentId,
                 UserId = "TestUser"
             };
             return await _chatHistoryManager.CreateThreadAsync(request);
@@ -183,7 +183,7 @@ namespace ap.nexus.agents.IntegrationTests
         private async Task AddTestUserMessageToThreadAsync(ChatThreadDto thread, string message)
         {
             var messageContent = new ChatMessageContent(AuthorRole.User, message);
-            await _chatHistoryManager.AddMessageAsync(thread.ExternalId, messageContent);
+            await _chatHistoryManager.AddMessageAsync(thread.Id, messageContent);
         }
     }
 }

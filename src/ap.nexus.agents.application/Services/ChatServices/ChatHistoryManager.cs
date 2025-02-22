@@ -15,13 +15,13 @@ namespace ap.nexus.agents.application.Services.ChatServices
     public interface IChatHistoryManager
     {
         Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request);
-        Task<ChatHistory?> GetChatHistoryByExternalIdAsync(Guid externalId);
-        Task<bool> ThreadExists(Guid externalId);
-        Task AddSystemMessageAsync(Guid externalId, ChatMessageContent chatMessage);
-        Task AddMessageAsync(Guid externalId, ChatMessageContent chatMessage);
-        void ClearHistory(Guid threadExternalId);
-        Task<bool> MemoryContainsThread(Guid externalId);
-        Task<ChatHistory> GetReducedChatHistoryAsync(Guid externalId, IChatCompletionService chatService);
+        Task<ChatHistory?> GetChatHistoryByIdAsync(Guid Id);
+        Task<bool> ThreadExists(Guid Id);
+        Task AddSystemMessageAsync(Guid Id, ChatMessageContent chatMessage);
+        Task AddMessageAsync(Guid Id, ChatMessageContent chatMessage);
+        void ClearHistory(Guid threadId);
+        Task<bool> MemoryContainsThread(Guid Id);
+        Task<ChatHistory> GetReducedChatHistoryAsync(Guid Id, IChatCompletionService chatService);
     }
 
     public class ChatHistoryManager : IChatHistoryManager
@@ -53,31 +53,31 @@ namespace ap.nexus.agents.application.Services.ChatServices
             ChatThreadDto threadDto = await _threadService.CreateThreadAsync(request);
             var chatHistory = new ChatHistory();
 
-            await _memoryStore.SetChatHistoryAsync(threadDto.ExternalId, chatHistory);
+            await _memoryStore.SetChatHistoryAsync(threadDto.Id, chatHistory);
 
-            _logger.LogInformation("Created new chat thread {ExternalId} and initialized chat history.", threadDto.ExternalId);
+            _logger.LogInformation("Created new chat thread {Id} and initialized chat history.", threadDto.Id);
             return threadDto;
         }
 
-        public async Task<ChatHistory?> GetChatHistoryByExternalIdAsync(Guid externalId)
+        public async Task<ChatHistory?> GetChatHistoryByIdAsync(Guid Id)
         {
-            ChatHistory? chatHistory = await _memoryStore.GetChatHistoryAsync(externalId);
+            ChatHistory? chatHistory = await _memoryStore.GetChatHistoryAsync(Id);
             if (chatHistory != null)
             {
-                _logger.LogInformation("Chat history for thread {ExternalId} found in memory store.", externalId);
+                _logger.LogInformation("Chat history for thread {Id} found in memory store.", Id);
                 return chatHistory;
             }
 
-            _logger.LogWarning("Chat history for thread {ExternalId} not found in memory store. Attempting to load from persistence.", externalId);
+            _logger.LogWarning("Chat history for thread {Id} not found in memory store. Attempting to load from persistence.", Id);
 
-            ChatThreadDto? threadDto = await _threadService.GetThreadByExternalIdAsync(externalId);
+            ChatThreadDto? threadDto = await _threadService.GetThreadByIdAsync(Id);
             if (threadDto == null)
             {
-                _logger.LogWarning("Thread {ExternalId} was not found in the database.", externalId);
+                _logger.LogWarning("Thread {Id} was not found in the database.", Id);
                 return null;
             }
 
-            var storedMessages = await _messageService.GetMessagesByThreadExternalIdAsync(externalId);
+            var storedMessages = await _messageService.GetMessagesByThreadIdAsync(Id);
             chatHistory = new ChatHistory();
             foreach (var storedMessage in storedMessages)
             {
@@ -87,70 +87,70 @@ namespace ap.nexus.agents.application.Services.ChatServices
                 chatHistory.Add(new ChatMessageContent(role, storedMessage.Content));
             }
 
-            await _memoryStore.SetChatHistoryAsync(externalId, chatHistory);
+            await _memoryStore.SetChatHistoryAsync(Id, chatHistory);
             return chatHistory;
         }
 
-        public async Task AddMessageAsync(Guid externalId, ChatMessageContent chatMessage)
+        public async Task AddMessageAsync(Guid Id, ChatMessageContent chatMessage)
         {
-            var chatHistory = await GetChatHistoryByExternalIdAsync(externalId);
+            var chatHistory = await GetChatHistoryByIdAsync(Id);
             if (chatHistory == null)
             {
-                _logger.LogWarning("Attempted to add a message to thread {ExternalId} which does not exist.", externalId);
-                throw new ArgumentException($"Thread with ExternalId {externalId} does not exist.");
+                _logger.LogWarning("Attempted to add a message to thread {Id} which does not exist.", Id);
+                throw new ArgumentException($"Thread with Id {Id} does not exist.");
             }
 
             chatHistory.Add(chatMessage);
 
-            await _memoryStore.SetChatHistoryAsync(externalId, chatHistory);
-            await PersistMessageAsync(externalId, chatMessage);
+            await _memoryStore.SetChatHistoryAsync(Id, chatHistory);
+            await PersistMessageAsync(Id, chatMessage);
         }
 
-        public void ClearHistory(Guid externalId)
+        public void ClearHistory(Guid Id)
         {
-            _memoryStore.RemoveChatHistoryAsync(externalId);
-            _logger.LogInformation("Cleared chat history for thread {ExternalId}.", externalId);
+            _memoryStore.RemoveChatHistoryAsync(Id);
+            _logger.LogInformation("Cleared chat history for thread {Id}.", Id);
         }
 
-        public Task<bool> MemoryContainsThread(Guid externalId)
+        public Task<bool> MemoryContainsThread(Guid Id)
         {
-            return _memoryStore.ExistsAsync(externalId);
+            return _memoryStore.ExistsAsync(Id);
         }
 
-        public async Task AddSystemMessageAsync(Guid externalId, ChatMessageContent chatMessage)
+        public async Task AddSystemMessageAsync(Guid Id, ChatMessageContent chatMessage)
         {
             if (chatMessage.Role != AuthorRole.System)
             {
-                _logger.LogWarning("Attempted to add a non-system message as a system message for thread {ExternalId}.", externalId);
+                _logger.LogWarning("Attempted to add a non-system message as a system message for thread {Id}.", Id);
                 throw new ArgumentException("Only messages with AuthorRole.System can be added as system messages.");
             }
 
-            var chatHistory = await GetChatHistoryByExternalIdAsync(externalId);
+            var chatHistory = await GetChatHistoryByIdAsync(Id);
             if (chatHistory == null)
             {
-                _logger.LogWarning("Chat history for thread {ExternalId} not found.", externalId);
-                throw new ArgumentException($"Thread with ExternalId {externalId} does not exist.");
+                _logger.LogWarning("Chat history for thread {Id} not found.", Id);
+                throw new ArgumentException($"Thread with Id {Id} does not exist.");
             }
 
             // Ensure there is no existing system message
             var existingSystemMessage = chatHistory.FirstOrDefault(m => m.Role == AuthorRole.System);
             if (existingSystemMessage != null)
             {
-                _logger.LogInformation("System message already exists for thread {ExternalId}. Skipping addition.", externalId);
+                _logger.LogInformation("System message already exists for thread {Id}. Skipping addition.", Id);
                 return;
             }
 
             // Add the system message
             chatHistory.Insert(0, chatMessage);
-            await _memoryStore.SetChatHistoryAsync(externalId, chatHistory);
-            _logger.LogInformation("System message added to thread {ExternalId}.", externalId);
+            await _memoryStore.SetChatHistoryAsync(Id, chatHistory);
+            _logger.LogInformation("System message added to thread {Id}.", Id);
 
         }
 
-        public async Task<ChatHistory> GetReducedChatHistoryAsync(Guid externalId, IChatCompletionService chatService)
+        public async Task<ChatHistory> GetReducedChatHistoryAsync(Guid Id, IChatCompletionService chatService)
         {
             // Retrieve full history  
-            var fullHistory = await GetChatHistoryByExternalIdAsync(externalId);
+            var fullHistory = await GetChatHistoryByIdAsync(Id);
             if (fullHistory == null) return null;
 
             // Apply reduction logic
@@ -171,36 +171,36 @@ namespace ap.nexus.agents.application.Services.ChatServices
             return reducedHistory;
         }
 
-        public async Task<bool> ThreadExists(Guid externalId)
+        public async Task<bool> ThreadExists(Guid Id)
         {
             // First, check if the thread is in the in‑memory store.
-            if (await _memoryStore.ExistsAsync(externalId))
+            if (await _memoryStore.ExistsAsync(Id))
             {
-                _logger.LogInformation("Thread {ExternalId} exists in memory store.", externalId);
+                _logger.LogInformation("Thread {Id} exists in memory store.", Id);
                 return true;
             }
 
             // If not in memory, check the database.
-            if (await _threadService.ThreadExternalIdExistsAsync(externalId))
+            if (await _threadService.ThreadIdExistsAsync(Id))
             {
-                _logger.LogInformation("Thread {ExternalId} exists in the database.", externalId);
+                _logger.LogInformation("Thread {Id} exists in the database.", Id);
                 return true;
             }
 
-            _logger.LogWarning("Thread {ExternalId} does not exist in memory or in the database.", externalId);
+            _logger.LogWarning("Thread {Id} does not exist in memory or in the database.", Id);
             return false;
         }
 
-        private async Task PersistMessageAsync(Guid externalId, ChatMessageContent chatMessage)
+        private async Task PersistMessageAsync(Guid Id, ChatMessageContent chatMessage)
         {
             try
             {
-                await _messageService.AddMessageAsync(chatMessage, externalId);
-                _logger.LogInformation("Persisted message for thread {ExternalId}.", externalId);
+                await _messageService.AddMessageAsync(chatMessage, Id);
+                _logger.LogInformation("Persisted message for thread {Id}.", Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error persisting message for thread {ExternalId}.", externalId);
+                _logger.LogError(ex, "Error persisting message for thread {Id}.", Id);
                 throw;
             }
         }

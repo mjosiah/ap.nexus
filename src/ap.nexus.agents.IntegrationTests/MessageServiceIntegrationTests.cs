@@ -28,7 +28,7 @@ namespace ap.nexus.agents.IntegrationTests
         }
 
         [Fact]
-        public async Task AddMessageAsync_ValidMessage_PersistsMessageAndGeneratesExternalId()
+        public async Task AddMessageAsync_ValidMessage_PersistsMessageAndGeneratesId()
         {
             // Arrange
             var title = "Test Add Message";
@@ -36,10 +36,10 @@ namespace ap.nexus.agents.IntegrationTests
             var messageContent = new ChatMessageContent(AuthorRole.User, "Test message content");
 
             // Act
-            await _messageService.AddMessageAsync(messageContent, thread.ExternalId);
+            await _messageService.AddMessageAsync(messageContent, thread.Id);
 
             // Assert
-            var messages = await _messageService.GetMessagesByThreadExternalIdAsync(thread.ExternalId);
+            var messages = await _messageService.GetMessagesByThreadIdAsync(thread.Id);
             messages.Should().NotBeEmpty();
             var addedMessage = messages.First();
             addedMessage.Content.Should().Be("Test message content");
@@ -52,9 +52,9 @@ namespace ap.nexus.agents.IntegrationTests
             var title = "Test Get Messages By ThreadId";
             var thread = await CreateTestChatThreadAsync(title);
             var messageContent = new ChatMessageContent(AuthorRole.User, "Message for ThreadId test");
-            await _messageService.AddMessageAsync(messageContent, thread.ExternalId);
+            await _messageService.AddMessageAsync(messageContent, thread.Id);
 
-            var chatThreadEntity = await GetTestChatThreadByExternalIdAsync(thread.ExternalId);
+            var chatThreadEntity = await GetTestChatThreadByIdAsync(thread.Id);
             chatThreadEntity.Should().NotBeNull();
 
             // Act
@@ -72,13 +72,13 @@ namespace ap.nexus.agents.IntegrationTests
             var title = "Test Get Message By Id";
             var thread = await CreateTestChatThreadAsync(title);
             var messageContent = new ChatMessageContent(AuthorRole.User, "Message to retrieve by ID");
-            await _messageService.AddMessageAsync(messageContent, thread.ExternalId);
+            await _messageService.AddMessageAsync(messageContent, thread.Id);
 
-            var chatMessage = await GetTestChatMessageAsync(threadExternalId: thread.ExternalId, content: "Message to retrieve by ID");
+            var chatMessage = await GetTestChatMessageAsync(threadId: thread.Id, content: "Message to retrieve by ID");
             chatMessage.Should().NotBeNull();
 
             // Act
-            var retrievedMessage = await _messageService.GetMessageByIdAsync(chatMessage.ExternalId.ToString());
+            var retrievedMessage = await _messageService.GetMessageByIdAsync(chatMessage.Id.ToString());
 
             // Assert
             retrievedMessage.Should().NotBeNull();
@@ -94,9 +94,9 @@ namespace ap.nexus.agents.IntegrationTests
             var originalContent = "Original message";
             var updatedContent = "Updated message content";
             var messageContent = new ChatMessageContent(AuthorRole.User, originalContent);
-            await _messageService.AddMessageAsync(messageContent, thread.ExternalId);
+            await _messageService.AddMessageAsync(messageContent, thread.Id);
 
-            var chatMessage = await GetTestChatMessageAsync(threadExternalId: thread.ExternalId, content: originalContent);
+            var chatMessage = await GetTestChatMessageAsync(threadId: thread.Id, content: originalContent);
             chatMessage.Should().NotBeNull();
 
             // Act
@@ -116,13 +116,13 @@ namespace ap.nexus.agents.IntegrationTests
             var title = "Test Delete Message";
             var thread = await CreateTestChatThreadAsync(title);
             var messageContent = new ChatMessageContent(AuthorRole.User, "Message to delete");
-            await _messageService.AddMessageAsync(messageContent, thread.ExternalId);
+            await _messageService.AddMessageAsync(messageContent, thread.Id);
 
-            var chatMessage = await GetTestChatMessageAsync(threadExternalId: thread.ExternalId, content: "Message to delete");
+            var chatMessage = await GetTestChatMessageAsync(threadId: thread.Id, content: "Message to delete");
             chatMessage.Should().NotBeNull();
 
             // Act
-            await _messageService.DeleteMessageAsync(chatMessage.ExternalId.ToString());
+            await _messageService.DeleteMessageAsync(chatMessage.Id.ToString());
 
             // Assert
             var deletedMessage = await _context.ChatMessages.FirstOrDefaultAsync(m => m.Id == chatMessage.Id);
@@ -132,11 +132,11 @@ namespace ap.nexus.agents.IntegrationTests
         // Helper method to create a test chat thread using the ChatHistoryManager.
         private async Task<ChatThreadDto> CreateTestChatThreadAsync(string title)
         {
-            var agentExternalId = _context.GetFirstAgentExternalId();
+            var agentId = _context.GetFirstAgentId();
             var request = new CreateChatThreadRequest
             {
                 Title = title,
-                AgentExternalId = agentExternalId,
+                AgentId = agentId,
                 UserId = "TestUser"
             };
             return await _chatHistoryManager.CreateThreadAsync(request);
@@ -144,22 +144,13 @@ namespace ap.nexus.agents.IntegrationTests
 
         // Generic helper method to retrieve a chat message based on multiple criteria.
         private async Task<ChatMessage?> GetTestChatMessageAsync(
-            Guid? threadExternalId = null,
             Guid? threadId = null,
             string? content = null,
-            Guid? messageExternalId = null)
+            Guid? messageId = null)
         {
             var query = _context.ChatMessages.AsQueryable();
 
-            if (threadExternalId.HasValue)
-            {
-                var thread = await _context.ChatThreads.FirstOrDefaultAsync(t => t.ExternalId == threadExternalId);
-                if (thread != null)
-                {
-                    query = query.Where(m => m.ChatThreadId == thread.Id);
-                }
-            }
-
+            
             if (threadId.HasValue)
             {
                 query = query.Where(m => m.ChatThreadId == threadId);
@@ -170,9 +161,9 @@ namespace ap.nexus.agents.IntegrationTests
                 query = query.Where(m => m.Content == content);
             }
 
-            if (messageExternalId.HasValue)
+            if (messageId.HasValue)
             {
-                query = query.Where(m => m.ExternalId == messageExternalId);
+                query = query.Where(m => m.Id == messageId);
             }
 
             return await query.FirstOrDefaultAsync();
@@ -193,8 +184,8 @@ namespace ap.nexus.agents.IntegrationTests
             messageContent.Items.Add(imageContent);
 
             // Act: Add the message to the database and retrieve it.
-            await _messageService.AddMessageAsync(messageContent, thread.ExternalId);
-            var retrievedMessage = await _messageService.GetMessagesByThreadExternalIdAsync(thread.ExternalId);
+            await _messageService.AddMessageAsync(messageContent, thread.Id);
+            var retrievedMessage = await _messageService.GetMessagesByThreadIdAsync(thread.Id);
 
             // Serialize the retrieved message to JSON for debugging.
             var retrievedJson = JsonSerializer.Serialize(retrievedMessage, new JsonSerializerOptions { WriteIndented = true });
@@ -217,10 +208,10 @@ namespace ap.nexus.agents.IntegrationTests
 
 
 
-        // Helper method to get a chat thread entity by ExternalId.
-        private async Task<ChatThread?> GetTestChatThreadByExternalIdAsync(Guid externalId)
+        // Helper method to get a chat thread entity by Id.
+        private async Task<ChatThread?> GetTestChatThreadByIdAsync(Guid Id)
         {
-            return await _context.ChatThreads.FirstOrDefaultAsync(t => t.ExternalId == externalId);
+            return await _context.ChatThreads.FirstOrDefaultAsync(t => t.Id == Id);
         }
     }
 }

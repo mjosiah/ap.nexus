@@ -22,39 +22,36 @@ namespace ap.nexus.agents.application.Services
 
         /// <summary>
         /// Creates a new chat thread based on the provided request.
-        /// Generates a new ExternalId, saves the thread, and returns a ChatThreadDto.
+        /// Generates a new Id, saves the thread, and returns a ChatThreadDto.
         /// </summary>
         public async Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request)
         {
             try
             {
-                var agent = await _agentRepository.FirstOrDefaultAsync(a => a.ExternalId == request.AgentExternalId);
+                var agent = await _agentRepository.FirstOrDefaultAsync(a => a.Id == request.AgentId);
 
                 if (agent == null)
                 {
-                    throw new Exception($"Agent with ExternalId {request.AgentExternalId} not found."); 
+                    throw new Exception($"Agent with Id {request.AgentId} not found."); 
                 }
 
                 var chatThread = new ChatThread
                 {
-                    ExternalId = Guid.NewGuid(),
                     AgentId = agent.Id,
                     Title = request.Title,
-                    AgentExternalId = request.AgentExternalId,
                     UserId = request.UserId
                 };
 
                 await _chatThreadRepository.AddAsync(chatThread);
                 await _chatThreadRepository.SaveChangesAsync();
 
-                _logger.LogInformation("Created chat thread with ExternalId {ExternalId} successfully.", chatThread.ExternalId);
+                _logger.LogInformation("Created chat thread with Id {Id} successfully.", chatThread.Id);
 
                 return new ChatThreadDto
                 {
                     Id = chatThread.Id,
-                    ExternalId = chatThread.ExternalId,
                     Title = chatThread.Title,
-                    AgentExternalId = chatThread.AgentExternalId,
+                    AgentId = chatThread.AgentId,
                     UserId = chatThread.UserId
                 };
             }
@@ -66,38 +63,37 @@ namespace ap.nexus.agents.application.Services
         }
 
         /// <summary>
-        /// Retrieves a chat thread by its ExternalId.
+        /// Retrieves a chat thread by its Id.
         /// Returns null if not found.
         /// </summary>
-        public async Task<ChatThreadDto?> GetThreadByExternalIdAsync(Guid externalId)
+        public async Task<ChatThreadDto?> GetThreadByIdAsync(Guid Id)
         {
             try
             {
 
                 var chatThread = await _chatThreadRepository
                     .Query()
-                    .FirstOrDefaultAsync(ct => ct.ExternalId == externalId);
+                    .FirstOrDefaultAsync(ct => ct.Id == Id);
 
                 if (chatThread == null)
                 {
-                    _logger.LogWarning("Chat thread with ExternalId {ExternalId} not found.", externalId);
+                    _logger.LogWarning("Chat thread with Id {Id} not found.", Id);
                     return null;
                 }
 
-                _logger.LogInformation("Retrieved chat thread with ExternalId {ExternalId} successfully.", externalId);
+                _logger.LogInformation("Retrieved chat thread with Id {Id} successfully.", Id);
 
                 return new ChatThreadDto
                 {
                     Id = chatThread.Id,
-                    ExternalId = chatThread.ExternalId,
                     Title = chatThread.Title,
-                    AgentExternalId = chatThread.AgentExternalId,
+                    AgentId = chatThread.AgentId,
                     UserId = chatThread.UserId
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving chat thread with ExternalId: {ExternalId}", externalId);
+                _logger.LogError(ex, "Error retrieving chat thread with Id: {Id}", Id);
                 throw new Exception("An error occurred while retrieving the chat thread.", ex);
             }
         }
@@ -131,9 +127,8 @@ namespace ap.nexus.agents.application.Services
                 var threadDtos = threads.Select(ct => new ChatThreadDto
                 {
                     Id = ct.Id,
-                    ExternalId = ct.ExternalId,
                     Title = ct.Title,
-                    AgentExternalId = ct.AgentExternalId,
+                    AgentId = ct.AgentId,
                     UserId = ct.UserId
                 }).ToList();
 
@@ -153,44 +148,44 @@ namespace ap.nexus.agents.application.Services
         }
 
         /// <summary>
-        /// Deletes a chat thread by its ExternalId.
+        /// Deletes a chat thread by its Id.
         /// Throws an exception if the thread is not found.
         /// </summary>
-        public async Task DeleteThreadByExternalIdAsync(Guid externalId)
+        public async Task DeleteThreadByIdAsync(Guid Id)
         {
             try
             {
                 var chatThread = await _chatThreadRepository
                     .Query()
-                    .FirstOrDefaultAsync(ct => ct.ExternalId == externalId);
+                    .FirstOrDefaultAsync(ct => ct.Id == Id);
 
                 if (chatThread == null)
                 {
-                    _logger.LogWarning("Attempted to delete chat thread with ExternalId {ExternalId} but it was not found.", externalId);
-                    throw new Exception($"ChatThread with ExternalId {externalId} was not found.");
+                    _logger.LogWarning("Attempted to delete chat thread with Id {Id} but it was not found.", Id);
+                    throw new Exception($"ChatThread with Id {Id} was not found.");
                 }
 
                 await _chatThreadRepository.DeleteAsync(chatThread);
                 await _chatThreadRepository.SaveChangesAsync();
 
-                _logger.LogInformation("Successfully deleted chat thread with ExternalId {ExternalId}.", externalId);
+                _logger.LogInformation("Successfully deleted chat thread with Id {Id}.", Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting chat thread with ExternalId {ExternalId}.", externalId);
+                _logger.LogError(ex, "Error deleting chat thread with Id {Id}.", Id);
                 throw new Exception("An error occurred while deleting the chat thread.", ex);
             }
         }
 
-        public async Task<bool> ThreadExternalIdExistsAsync(Guid externalId)
+        public async Task<bool> ThreadIdExistsAsync(Guid Id)
         {
             try
             {
-                return await _chatThreadRepository.Query().AnyAsync(ct => ct.ExternalId == externalId);
+                return await _chatThreadRepository.Query().AnyAsync(ct => ct.Id == Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking existence of chat thread with ExternalId {ExternalId}", externalId);
+                _logger.LogError(ex, "Error checking existence of chat thread with Id {Id}", Id);
                 throw;
             }
         }

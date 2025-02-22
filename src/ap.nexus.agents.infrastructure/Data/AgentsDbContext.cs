@@ -1,5 +1,6 @@
 ﻿using ap.nexus.agents.domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using ChatThread = ap.nexus.agents.domain.Entities.ChatThread;
 
 namespace ap.nexus.agents.infrastructure.Data
 {

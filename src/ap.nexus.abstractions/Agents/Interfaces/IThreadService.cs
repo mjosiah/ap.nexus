@@ -6,11 +6,11 @@ namespace ap.nexus.abstractions.Agents.Interfaces
     {
         Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request);
 
-        Task<ChatThreadDto?> GetThreadByExternalIdAsync(Guid externalId);
+        Task<ChatThreadDto?> GetThreadByIdAsync(Guid Id);
 
         Task<PagedResultDto<ChatThreadDto>> GetAllThreadsAsync(PagedAndSortedResultRequestDto input);
-        Task DeleteThreadByExternalIdAsync(Guid externalId);
-        Task<bool> ThreadExternalIdExistsAsync(Guid externalId);
+        Task DeleteThreadByIdAsync(Guid Id);
+        Task<bool> ThreadIdExistsAsync(Guid Id);
 
     }
 }

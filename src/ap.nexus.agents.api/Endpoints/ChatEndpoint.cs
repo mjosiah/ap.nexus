@@ -14,8 +14,8 @@ namespace ap.nexus.agents.api.Endpoints
     public class ChatRequest
     {
         [Required]
-        public Guid AgentExternalId { get; set; }
-        public Guid? ThreadExternalId { get; set; }
+        public Guid AgentId { get; set; }
+        public Guid? ThreadId { get; set; }
         [Required]
         public ChatMessageContent Message { get; set; }
     }
@@ -23,7 +23,7 @@ namespace ap.nexus.agents.api.Endpoints
     public class ChatResponse
     {
         public ChatMessageContent Response { get; set; } = new();
-        public Guid ThreadExternalId { get; set; }
+        public Guid ThreadId { get; set; }
     }
     public class ChatEndpoint : Endpoint<ChatRequest, ChatResponse>
     {
@@ -61,7 +61,7 @@ namespace ap.nexus.agents.api.Endpoints
         public override async Task HandleAsync(ChatRequest req, CancellationToken ct)
         {
             // Retrieve the agent and ensure it exists.
-            var agent = await _agentService.GetAgentByExternalIdAsync(req.AgentExternalId);
+            var agent = await _agentService.GetAgentByIdAsync(req.AgentId);
             if (agent == null)
             {
                 AddError("Agent not found.");
@@ -88,35 +88,35 @@ namespace ap.nexus.agents.api.Endpoints
             
 
             // Determine the thread to use.
-            Guid threadExternalId;
+            Guid threadId;
             ChatHistory? chatHistory = null;
             bool isNewThread = false;
-            if (req.ThreadExternalId.HasValue)
+            if (req.ThreadId.HasValue)
             {
-                threadExternalId = req.ThreadExternalId.Value;
+                threadId = req.ThreadId.Value;
             }
             else
             {
-                threadExternalId = Guid.NewGuid();
+                threadId = Guid.NewGuid();
             }
 
             // If no chat history exists, create a new thread.
-            if (! await _chatHistoryManager.ThreadExists(threadExternalId))
+            if (! await _chatHistoryManager.ThreadExists(threadId))
             {
-                var createThreadRequest = new CreateChatThreadRequest { AgentExternalId = agent.ExternalId };
+                var createThreadRequest = new CreateChatThreadRequest { AgentId = agent.Id };
                 var threadDto = await _chatHistoryManager.CreateThreadAsync(createThreadRequest);
-                threadExternalId = threadDto.ExternalId;
+                threadId = threadDto.Id;
                 isNewThread = true;
             }
 
             var systemMessage = new ChatMessageContent(AuthorRole.System, agent.Instruction);
-            await _chatHistoryManager.AddSystemMessageAsync(threadExternalId, systemMessage);
+            await _chatHistoryManager.AddSystemMessageAsync(threadId, systemMessage);
 
             // Add the user's message.
-            await _chatHistoryManager.AddMessageAsync(threadExternalId, req.Message);
+            await _chatHistoryManager.AddMessageAsync(threadId, req.Message);
 
             // Execute the chat completion.
-            var reducedMessages = await _chatHistoryManager.GetReducedChatHistoryAsync(threadExternalId,_chatCompletionService);
+            var reducedMessages = await _chatHistoryManager.GetReducedChatHistoryAsync(threadId,_chatCompletionService);
             var executionSettings = new OpenAIPromptExecutionSettings { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() };
             var result = await _chatCompletionService.GetChatMessageContentAsync(reducedMessages, executionSettings: executionSettings, kernel: kernel);
 
@@ -133,10 +133,10 @@ namespace ap.nexus.agents.api.Endpoints
             };
             #pragma warning restore SKEXP0001 
 
-            await _chatHistoryManager.AddMessageAsync(threadExternalId, responseMessage);
+            await _chatHistoryManager.AddMessageAsync(threadId, responseMessage);
 
             // Send the final response.
-            await SendAsync(new ChatResponse { Response = responseMessage, ThreadExternalId = threadExternalId }, cancellation: ct);
+            await SendAsync(new ChatResponse { Response = responseMessage, ThreadId = threadId }, cancellation: ct);
         }
 
         private ChatRequest CreateSampleChatRequest()
@@ -145,8 +145,8 @@ namespace ap.nexus.agents.api.Endpoints
 
             return new ChatRequest
             {
-                AgentExternalId = Guid.NewGuid(),
-                ThreadExternalId = Guid.NewGuid(),
+                AgentId = Guid.NewGuid(),
+                ThreadId = Guid.NewGuid(),
                 Message = messageContent
             };
         }

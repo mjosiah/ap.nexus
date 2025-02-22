@@ -14,27 +14,27 @@ namespace ap.nexus.agents.IntegrationTests
                 {
                     new Agent
                     {
-                        ExternalId = Guid.NewGuid(),
+                        Id = Guid.NewGuid(),
                         Name = "Agent One",
                         Description = "First test agent",
                         Model = "Model1",
                         Instruction = "Instruction1",
                         ReasoningEffort = null,
                         Scope = ScopeType.Team,
-                        ScopeExternalId = "Scope1",
-                        ToolsJson = "[]"
+                        ScopeId = "Scope1",
+                        Tools = "[]"
                     },
                     new Agent
                     {
-                        ExternalId = Guid.NewGuid(),
+                        Id = Guid.NewGuid(),
                         Name = "Agent Two",
                         Description = "Second test agent",
                         Model = "Model2",
                         Instruction = "Instruction2",
                         ReasoningEffort = null,
                         Scope = ScopeType.Team,
-                        ScopeExternalId = "Scope2",
-                        ToolsJson = "[]"
+                        ScopeId = "Scope2",
+                        Tools = "[]"
                     }
                 };
 
@@ -43,9 +43,9 @@ namespace ap.nexus.agents.IntegrationTests
             }
         }
 
-        public static Guid GetFirstAgentExternalId(this AgentsDbContext context)
+        public static Guid GetFirstAgentId(this AgentsDbContext context)
         {
-            return context.Agents.First().ExternalId;
+            return context.Agents.First().Id;
         }
     }
 }

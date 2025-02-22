@@ -47,7 +47,7 @@ namespace ap.nexus.agents.IntegrationTests
                 Metadata = new System.Collections.Generic.Dictionary<string, string>(),
                 ReasoningEffort = null,
                 Scope = ScopeType.Team,
-                ScopeExternalId = "TestScope"
+                ScopeId = "TestScope"
             };
 
             var result = await _agentService.CreateAgentAsync(request);

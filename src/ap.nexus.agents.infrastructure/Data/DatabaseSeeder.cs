@@ -14,27 +14,25 @@ namespace ap.nexus.agents.infrastructure
                 {
                     new Agent
                     {
-                        ExternalId = Guid.NewGuid(),
                         Name = "Albert the magnificient",
                         Description = "Personal AI",
                         Model = "gpt-4o-mini",
                         Instruction = "You are a snarky, self absored, highly arrogant AI assistant call Albert",
                         ReasoningEffort = null,
                         Scope = ScopeType.Personal,
-                        ScopeExternalId = "michael.josiah@mandg.com",
-                        ToolsJson = "[]"
+                        ScopeId = "michael.josiah@mandg.com",
+                        Tools = "[]"
                     },
                     new Agent
                     {
-                        ExternalId = Guid.NewGuid(),
                         Name = "AI and Analytics AI",
                         Description = "Analytics team AI",
                         Model = "gpt-4o-mini",
                         Instruction = "Helpful AI. Generates short and concise answers with humour and flirtatious nature.",
                         ReasoningEffort = null,
                         Scope = ScopeType.Team,
-                        ScopeExternalId = "Analytics team GUID",
-                        ToolsJson = "[]"
+                        ScopeId = "Analytics team GUID",
+                        Tools = "[]"
                     }
                 };
 
@@ -43,9 +41,9 @@ namespace ap.nexus.agents.infrastructure
             }
         }
 
-        public static Guid GetFirstAgentExternalId(this AgentsDbContext context)
+        public static Guid GetFirstAgentId(this AgentsDbContext context)
         {
-            return context.Agents.First().ExternalId;
+            return context.Agents.First().Id;
         }
     }
 }

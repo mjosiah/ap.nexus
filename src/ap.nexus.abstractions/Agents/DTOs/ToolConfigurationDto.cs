@@ -7,6 +7,6 @@ namespace ap.nexus.abstractions.Agents.DTOs
         public ToolType Type { get; set; }
         public List<Guid>? FileIds { get; set; } = new();
         public List<Guid>? VectorStoreIds { get; set; } = new();
-        public string? ToolExternalId { get; set; }
+        public string? ToolId { get; set; }
     }
 }

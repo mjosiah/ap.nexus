@@ -18,9 +18,9 @@ namespace ap.nexus.agents.application.Services.ChatServices
             _logger = logger;
         }
 
-        public Task<ChatHistory?> GetChatHistoryAsync(Guid externalId)
+        public Task<ChatHistory?> GetChatHistoryAsync(Guid Id)
         {
-            _store.TryGetValue(externalId.ToString(), out var record);
+            _store.TryGetValue(Id.ToString(), out var record);
             if (record != null)
             {
                 record.UpdateLastAccessed();
@@ -29,23 +29,23 @@ namespace ap.nexus.agents.application.Services.ChatServices
             return Task.FromResult<ChatHistory?>(null);
         }
 
-        public Task SetChatHistoryAsync(Guid externalId, ChatHistory chatHistory)
+        public Task SetChatHistoryAsync(Guid Id, ChatHistory chatHistory)
         {
-            var key = externalId.ToString();
+            var key = Id.ToString();
             var record = new ChatThreadRecord(chatHistory);
             _store[key] = record;
             return Task.CompletedTask;
         }
 
-        public Task RemoveChatHistoryAsync(Guid externalId)
+        public Task RemoveChatHistoryAsync(Guid Id)
         {
-            _store.TryRemove(externalId.ToString(), out _);
+            _store.TryRemove(Id.ToString(), out _);
             return Task.CompletedTask;
         }
 
-        public Task<bool> ExistsAsync(Guid externalId)
+        public Task<bool> ExistsAsync(Guid Id)
         {
-            return Task.FromResult(_store.ContainsKey(externalId.ToString()));
+            return Task.FromResult(_store.ContainsKey(Id.ToString()));
         }
 
         public int GetThreadCount()

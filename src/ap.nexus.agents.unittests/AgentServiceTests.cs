@@ -35,7 +35,7 @@ namespace ap.nexus.agents.unittests
                 Metadata = new Dictionary<string, string>(),
                 ReasoningEffort = null,
                 Scope = ScopeType.Team,
-                ScopeExternalId = "Scope123"
+                ScopeId = "Scope123"
             };
 
             // Act & Assert
@@ -56,7 +56,7 @@ namespace ap.nexus.agents.unittests
                 Metadata = new Dictionary<string, string>(),
                 ReasoningEffort = null,
                 Scope = ScopeType.Team,
-                ScopeExternalId = "Scope123"
+                ScopeId = "Scope123"
             };
 
             _agentRepositoryMock

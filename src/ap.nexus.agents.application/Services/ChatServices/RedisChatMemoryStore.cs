@@ -32,9 +32,9 @@ namespace ap.nexus.agents.application.Services.ChatServices
             };
         }
 
-        public async Task<ChatHistory?> GetChatHistoryAsync(Guid externalId)
+        public async Task<ChatHistory?> GetChatHistoryAsync(Guid Id)
         {
-            string key = GetRedisKey(externalId);
+            string key = GetRedisKey(Id);
             try
             {
                 var data = await _database.StringGetAsync(key);
@@ -60,9 +60,9 @@ namespace ap.nexus.agents.application.Services.ChatServices
             }
         }
 
-        public async Task SetChatHistoryAsync(Guid externalId, ChatHistory chatHistory)
+        public async Task SetChatHistoryAsync(Guid Id, ChatHistory chatHistory)
         {
-            string key = GetRedisKey(externalId);
+            string key = GetRedisKey(Id);
             try
             {
                 var record = new ChatThreadRecord(chatHistory);
@@ -76,9 +76,9 @@ namespace ap.nexus.agents.application.Services.ChatServices
             }
         }
 
-        public async Task RemoveChatHistoryAsync(Guid externalId)
+        public async Task RemoveChatHistoryAsync(Guid Id)
         {
-            string key = GetRedisKey(externalId);
+            string key = GetRedisKey(Id);
             try
             {
                 await _database.KeyDeleteAsync(key);
@@ -90,9 +90,9 @@ namespace ap.nexus.agents.application.Services.ChatServices
             }
         }
 
-        public async Task<bool> ExistsAsync(Guid externalId)
+        public async Task<bool> ExistsAsync(Guid Id)
         {
-            string key = GetRedisKey(externalId);
+            string key = GetRedisKey(Id);
             try
             {
                 return await _database.KeyExistsAsync(key);
@@ -104,9 +104,9 @@ namespace ap.nexus.agents.application.Services.ChatServices
             }
         }
 
-        private string GetRedisKey(Guid externalId)
+        private string GetRedisKey(Guid Id)
         {
-            return $"{_redisKeyPrefix}:{externalId}";
+            return $"{_redisKeyPrefix}:{Id}";
         }
 
         public int GetThreadCount()

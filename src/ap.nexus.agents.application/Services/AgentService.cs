@@ -42,15 +42,15 @@ namespace ap.nexus.agents.application.Services
             // Create a new agent entity
             var agent = new Agent
             {
-                ExternalId = Guid.NewGuid(),
+                Id = Guid.NewGuid(),
                 Name = request.Name,
                 Description = request.Description,
                 Model = request.Model,
                 Instruction = request.Instructions,
                 ReasoningEffort = request.ReasoningEffort,
                 Scope = request.Scope,
-                ScopeExternalId = request.ScopeExternalId,
-                ToolsJson = System.Text.Json.JsonSerializer.Serialize(request.Tools)
+                ScopeId = request.ScopeId,
+                Tools = System.Text.Json.JsonSerializer.Serialize(request.Tools)
             };
 
             // Persist the new agent entity
@@ -60,7 +60,7 @@ namespace ap.nexus.agents.application.Services
             // Map the entity to its DTO representation and return it
             return new AgentDto
             {
-                ExternalId = agent.ExternalId,
+                Id = agent.Id,
                 Name = agent.Name,
                 Description = agent.Description,
                 Model = agent.Model,
@@ -69,27 +69,27 @@ namespace ap.nexus.agents.application.Services
                 Tools = request.Tools,
                 Metadata = request.Metadata,
                 Scope = agent.Scope,
-                ScopeExternalId = agent.ScopeExternalId
+                ScopeId = agent.ScopeId
             };
         }
 
         /// <summary>
         /// Deletes an existing agent identified by the provided external ID.
         /// </summary>
-        /// <param name="agentExternalId">The external ID of the agent to delete.</param>
+        /// <param name="agentId">The external ID of the agent to delete.</param>
         /// <returns>A task that returns true if the deletion was successful.</returns>
         /// <exception cref="FriendlyBusinessException">
         /// Thrown when the agent with the provided external ID is not found.
         /// </exception>
-        public async Task<bool> DeleteAgentAsync(Guid agentExternalId)
+        public async Task<bool> DeleteAgentAsync(Guid agentId)
         {
-            // Find the agent using its ExternalId
+            // Find the agent using its Id
             var agent = await _agentRepository.Query()
-                .FirstOrDefaultAsync(a => a.ExternalId == agentExternalId);
+                .FirstOrDefaultAsync(a => a.Id == agentId);
 
             if (agent == null)
             {
-                throw new FriendlyBusinessException($"Agent with ExternalId '{agentExternalId}' was not found.");
+                throw new FriendlyBusinessException($"Agent with Id '{agentId}' was not found.");
             }
 
             // Remove the agent entity and save the changes
@@ -101,29 +101,29 @@ namespace ap.nexus.agents.application.Services
         /// <summary>
         /// Retrieves an agent by its external ID.
         /// </summary>
-        /// <param name="agentExternalId">The external ID of the agent.</param>
+        /// <param name="agentId">The external ID of the agent.</param>
         /// <returns>A task that returns the corresponding AgentDto.</returns>
         /// <exception cref="FriendlyBusinessException">
         /// Thrown when the agent with the provided external ID is not found.
         /// </exception>
-        public async Task<AgentDto> GetAgentByExternalIdAsync(Guid agentExternalId)
+        public async Task<AgentDto> GetAgentByIdAsync(Guid agentId)
         {
             var agent = await _agentRepository.Query()
-                .FirstOrDefaultAsync(a => a.ExternalId == agentExternalId);
+                .FirstOrDefaultAsync(a => a.Id == agentId);
 
             if (agent == null)
             {
-                throw new FriendlyBusinessException($"Agent with ExternalId '{agentExternalId}' was not found.");
+                throw new FriendlyBusinessException($"Agent with Id '{agentId}' was not found.");
             }
 
             // Deserialize the tools JSON to a list of ToolConfigurationDto objects
-            var tools = System.Text.Json.JsonSerializer.Deserialize<List<ToolConfigurationDto>>(agent.ToolsJson)
+            var tools = System.Text.Json.JsonSerializer.Deserialize<List<ToolConfigurationDto>>(agent.Tools)
                         ?? new List<ToolConfigurationDto>();
 
             // Map the entity to its DTO representation
             return new AgentDto
             {
-                ExternalId = agent.ExternalId,
+                Id = agent.Id,
                 Name = agent.Name,
                 Description = agent.Description,
                 Model = agent.Model,
@@ -132,7 +132,7 @@ namespace ap.nexus.agents.application.Services
                 Tools = tools,
                 Metadata = new Dictionary<string, string>(), // Adjust if Metadata is stored differently
                 Scope = agent.Scope,
-                ScopeExternalId = agent.ScopeExternalId
+                ScopeId = agent.ScopeId
             };
         }
 
@@ -168,17 +168,17 @@ namespace ap.nexus.agents.application.Services
             // Map the entity list to a list of DTOs
             var agentDtos = agents.Select(agent => new AgentDto
             {
-                ExternalId = agent.ExternalId,
+                Id = agent.Id,
                 Name = agent.Name,
                 Description = agent.Description,
                 Model = agent.Model,
                 Instruction = agent.Instruction,
                 ReasoningEffort = agent.ReasoningEffort,
-                Tools = System.Text.Json.JsonSerializer.Deserialize<List<ToolConfigurationDto>>(agent.ToolsJson)
+                Tools = System.Text.Json.JsonSerializer.Deserialize<List<ToolConfigurationDto>>(agent.Tools)
                         ?? new List<ToolConfigurationDto>(),
                 Metadata = new Dictionary<string, string>(),
                 Scope = agent.Scope,
-                ScopeExternalId = agent.ScopeExternalId
+                ScopeId = agent.ScopeId
             }).ToList();
 
             // Return the paged result
@@ -192,21 +192,21 @@ namespace ap.nexus.agents.application.Services
         /// <summary>
         /// Updates an existing agent with the new data provided in the request.
         /// </summary>
-        /// <param name="agentExternalId">The external ID of the agent to update.</param>
+        /// <param name="agentId">The external ID of the agent to update.</param>
         /// <param name="request">The update data.</param>
         /// <returns>A DTO representing the updated agent.</returns>
         /// <exception cref="FriendlyBusinessException">
         /// Thrown when the agent is not found or if the updated agent name is invalid.
         /// </exception>
-        public async Task<AgentDto> UpdateAgentAsync(Guid agentExternalId, UpdateAgentRequest request)
+        public async Task<AgentDto> UpdateAgentAsync(Guid agentId, UpdateAgentRequest request)
         {
             // Locate the agent by its external ID
             var agent = await _agentRepository.Query()
-                .FirstOrDefaultAsync(a => a.ExternalId == agentExternalId);
+                .FirstOrDefaultAsync(a => a.Id == agentId);
 
             if (agent == null)
             {
-                throw new FriendlyBusinessException($"Agent with ExternalId '{agentExternalId}' was not found.");
+                throw new FriendlyBusinessException($"Agent with Id '{agentId}' was not found.");
             }
 
             // Business rule: Agent name cannot be "Invalid"
@@ -228,7 +228,7 @@ namespace ap.nexus.agents.application.Services
             // Update Tools if provided
             if (request.Tools != null)
             {
-                agent.ToolsJson = System.Text.Json.JsonSerializer.Serialize(request.Tools);
+                agent.Tools = System.Text.Json.JsonSerializer.Serialize(request.Tools);
             }
 
             // Persist the changes to the repository
@@ -236,12 +236,12 @@ namespace ap.nexus.agents.application.Services
 
             // Map the updated entity to its DTO
             var updatedTools = request.Tools ??
-                               System.Text.Json.JsonSerializer.Deserialize<List<ToolConfigurationDto>>(agent.ToolsJson)
+                               System.Text.Json.JsonSerializer.Deserialize<List<ToolConfigurationDto>>(agent.Tools)
                                ?? new List<ToolConfigurationDto>();
 
             return new AgentDto
             {
-                ExternalId = agent.ExternalId,
+                Id = agent.Id,
                 Name = agent.Name,
                 Description = agent.Description,
                 Model = agent.Model,
@@ -250,7 +250,7 @@ namespace ap.nexus.agents.application.Services
                 Tools = updatedTools,
                 Metadata = request.Metadata ?? new Dictionary<string, string>(),
                 Scope = agent.Scope,
-                ScopeExternalId = agent.ScopeExternalId
+                ScopeId = agent.ScopeId
             };
         }
     }

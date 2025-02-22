@@ -3,7 +3,7 @@
     public class CreateChatThreadRequest
     {
         public string Title { get; set; } = string.Empty;
-        public Guid AgentExternalId { get; set; } 
+        public Guid AgentId { get; set; } 
         public string UserId { get; set; } = string.Empty;
     }
 }

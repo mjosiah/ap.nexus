@@ -22,27 +22,26 @@ namespace ap.nexus.agents.application.Services
             _chatThreadRepository = chatThreadRepository;
         }
 
-        public async Task AddMessageAsync(ChatMessageContent message, Guid threadExternalId)
+        public async Task AddMessageAsync(ChatMessageContent message, Guid threadId)
         {
             try
             {
-                var chatThread = await _chatThreadRepository.Query().FirstOrDefaultAsync(t => t.ExternalId == threadExternalId);
+                var chatThread = await _chatThreadRepository.Query().FirstOrDefaultAsync(t => t.Id == threadId);
 
                 if (chatThread == null)
                 {
-                    _logger.LogWarning($"Thread with ExternalId {threadExternalId} not found.");
-                    throw new FriendlyBusinessException($"Thread with ExternalId {threadExternalId} was not found.");
+                    _logger.LogWarning($"Thread with Id {threadId} not found.");
+                    throw new FriendlyBusinessException($"Thread with Id {threadId} was not found.");
                 }
 
                 var chatMessage = new ChatMessage
                 {
-                    ExternalId = Guid.NewGuid(),
                     Content = message.Content,
-                    ItemsJson = System.Text.Json.JsonSerializer.Serialize(message.Items),
+                    Items = System.Text.Json.JsonSerializer.Serialize(message.Items),
                     ChatThreadId = chatThread.Id,
                     //UserId = message.UserId,
                     Role = message.Role == AuthorRole.User ? Role.User : (message.Role == AuthorRole.System ? Role.System : Role.Assistant),
-                    MetadataJson = System.Text.Json.JsonSerializer.Serialize(message.Metadata),
+                    MetaData = System.Text.Json.JsonSerializer.Serialize(message.Metadata),
                 };
 
                 await _messageRepository.AddAsync(chatMessage);
@@ -52,30 +51,6 @@ namespace ap.nexus.agents.application.Services
             {
                 _logger.LogError(ex, "Error adding message.");
                 throw new FriendlyBusinessException("Error adding message.");
-            }
-        }
-
-        public async Task<List<ChatMessageContent>> GetMessagesByThreadExternalIdAsync(Guid threadExternalId)
-        {
-            try
-            {
-                var chatThread = await _chatThreadRepository.Query().FirstOrDefaultAsync(t => t.ExternalId == threadExternalId);
-                if (chatThread == null)
-                {
-                    _logger.LogWarning($"Thread with ExternalId {threadExternalId} not found.");
-                    throw new FriendlyBusinessException($"Thread with ExternalId {threadExternalId} was not found."); // Using FriendlyBusinessException
-                }
-
-                var messages = await _messageRepository.Query()
-                    .Where(m => m.ChatThreadId == chatThread.Id)
-                    .ToListAsync();
-
-                return messages.Select(MapToChatMessageContent).ToList();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error getting messages by thread ExternalId: {threadExternalId}");
-                throw new FriendlyBusinessException($"Error getting messages by thread ExternalId: {threadExternalId}");
             }
         }
 
@@ -99,14 +74,14 @@ namespace ap.nexus.agents.application.Services
         {
             try
             {
-                if (!Guid.TryParse(messageId, out Guid externalId))
+                if (!Guid.TryParse(messageId, out Guid Id))
                 {
                     _logger.LogWarning($"Invalid messageId format: {messageId}");
                     return null;
                 }
 
                 var message = await _messageRepository.Query()
-                    .FirstOrDefaultAsync(m => m.ExternalId == externalId);
+                    .FirstOrDefaultAsync(m => m.Id == Id);
 
                 return message == null ? null : MapToChatMessageContent(message);
             }
@@ -132,8 +107,8 @@ namespace ap.nexus.agents.application.Services
 
                 // Update the existing message with the new values.
                 existingMessage.Content = message.Content;
-                existingMessage.ItemsJson = System.Text.Json.JsonSerializer.Serialize(message.Items);
-                existingMessage.MetadataJson = System.Text.Json.JsonSerializer.Serialize(message.Metadata);
+                existingMessage.Items = System.Text.Json.JsonSerializer.Serialize(message.Items);
+                existingMessage.MetaData = System.Text.Json.JsonSerializer.Serialize(message.Metadata);
                 // ... Update other properties as needed ...
 
                 await _messageRepository.UpdateAsync(existingMessage);
@@ -150,12 +125,12 @@ namespace ap.nexus.agents.application.Services
         {
             try
             {
-                if (!Guid.TryParse(messageId, out Guid externalId))
+                if (!Guid.TryParse(messageId, out Guid Id))
                 {
                     throw new ArgumentException("Invalid message ID format.");
                 }
 
-                var message = await _messageRepository.Query().FirstOrDefaultAsync(m => m.ExternalId == externalId);
+                var message = await _messageRepository.Query().FirstOrDefaultAsync(m => m.Id == Id);
                 if (message == null)
                 {
                     _logger.LogWarning($"Message with ID {messageId} not found.");
@@ -177,7 +152,7 @@ namespace ap.nexus.agents.application.Services
             return new ChatMessageContent
             {
                 Content = message.Content,
-                Items = System.Text.Json.JsonSerializer.Deserialize<ChatMessageContentItemCollection>(message.ItemsJson) ?? new(),
+                Items = System.Text.Json.JsonSerializer.Deserialize<ChatMessageContentItemCollection>(message.Items) ?? new(),
                 Role = message.Role == Role.User
                         ? AuthorRole.User
                         : message.Role == Role.System
