@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using ap.nexus.core.data;
 using ap.nexus.settingmanager.Infrastructure.Data.Repositories;
+using ap.nexus.settingmanager.Domain.Entities;
 
 namespace ap.nexus.settingmanager.Application
 {
@@ -18,7 +19,13 @@ namespace ap.nexus.settingmanager.Application
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
             // Register the generic repository.
-            services.AddScoped(typeof(IGenericRepository<>), typeof(GenericSettingRepository<>));
+            //services.Scan(scan => scan
+            //.FromAssemblyOf<SettingsDbContext>()
+            //.AddClasses(classes => classes.Where(type => type.Name.EndsWith("Repository")))
+            //.AsImplementedInterfaces()
+            //.WithScopedLifetime());
+
+            services.AddScoped<IGenericRepository<Setting>, GenericSettingRepository<Setting>>();
         }
         public override async Task InitializeAsync()
         {

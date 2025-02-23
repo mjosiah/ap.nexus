@@ -18,7 +18,7 @@ namespace ap.nexus.agents.infrastructure
             // Register the generic repository.
             services.Scan(scan => scan
             .FromAssemblyOf<AgentsDbContext>()
-            .AddClasses(classes => classes.Where(type => type.Namespace.Contains("ap.nexus.settingmanager")))
+            .AddClasses(classes => classes.Where(type => type.Namespace.Contains("ap.nexus.agents.infrastructure")))
             .AsImplementedInterfaces()
             .WithScopedLifetime());
 
