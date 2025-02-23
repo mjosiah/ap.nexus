@@ -11,7 +11,7 @@ namespace ap.nexus.settingmanager.Application
 {
     public class SettingManagerInfrastructureModule : NexusModule
     {
-       public override void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+       public override void ConfigureModuleServices(IServiceCollection services, IConfiguration configuration)
         {
             services.AddScoped<ISettingStore, EntityFrameworkSettingStore>();
 

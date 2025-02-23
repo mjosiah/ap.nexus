@@ -7,7 +7,7 @@ namespace ap.nexus.settingmanager.Application
 {
     public class SettingManagerApplicationModule : NexusModule
     {
-       public override void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+       public override void ConfigureModuleServices(IServiceCollection services, IConfiguration configuration)
         {
             services.AddScoped<ISettingManager, SettingManager>();
         }

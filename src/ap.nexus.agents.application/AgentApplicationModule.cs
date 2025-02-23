@@ -12,7 +12,7 @@ namespace ap.nexus.agents.application
 {
     public class AgentsApplicationModule : NexusModule
     {
-        public override void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+        public override void ConfigureModuleServices(IServiceCollection services, IConfiguration configuration)
         {
             // Register application services.
             services.AddScoped<IAgentService, AgentService>();

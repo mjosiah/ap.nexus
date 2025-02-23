@@ -50,7 +50,7 @@ namespace AP.Nexus.Core.Modularity
         /// Override this method to add module-specific service configuration.
         /// This is called after the automatic service registration.
         /// </summary>
-        protected virtual void ConfigureModuleServices(IServiceCollection services, IConfiguration configuration)
+        public virtual void ConfigureModuleServices(IServiceCollection services, IConfiguration configuration)
         {
         }
 
