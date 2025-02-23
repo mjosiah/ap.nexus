@@ -1,7 +1,8 @@
 ﻿using ap.nexus.abstractions.Frameworks.SettingManagement;
+using ap.nexus.core.SettingManagement.Providers;
 using Microsoft.Extensions.Configuration;
 
-namespace ap.nexus.core.SettingManagement.Providers
+namespace ap.nexus.settingmanager.Application.Providers
 {
     public class ConfigurationSettingValueProvider : SettingValueProviderBase
     {

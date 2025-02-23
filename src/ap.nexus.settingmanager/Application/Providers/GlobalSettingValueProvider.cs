@@ -1,6 +1,7 @@
 ﻿using ap.nexus.abstractions.Frameworks.SettingManagement;
+using ap.nexus.core.SettingManagement.Providers;
 
-namespace ap.nexus.core.SettingManagement.Providers
+namespace ap.nexus.settingmanager.Application.Providers
 {
     public class GlobalSettingValueProvider : SettingValueProviderBase
     {
