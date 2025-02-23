@@ -1,11 +1,5 @@
 ﻿using ap.nexus.abstractions.Frameworks.SettingManagement;
-using ap.nexus.core.Settings.Definitions;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ap.nexus.core.SettingManagement.Providers
 {
