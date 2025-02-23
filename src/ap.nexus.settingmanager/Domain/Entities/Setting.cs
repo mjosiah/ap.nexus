@@ -8,6 +8,7 @@ namespace ap.nexus.settingmanager.Domain.Entities
         /// Name of the setting (e.g., "SmartDocs.BatchSize")
         /// </summary>
         public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
 
         /// <summary>
         /// Serialized value of the setting

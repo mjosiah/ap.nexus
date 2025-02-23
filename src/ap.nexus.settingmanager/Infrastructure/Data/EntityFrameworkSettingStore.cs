@@ -36,6 +36,7 @@ namespace ap.nexus.settingmanager.Infrastructure.Data
                 {
                     Id = Guid.NewGuid(),
                     Name = name,
+                    Description = string.Empty,
                     Value = value,
                     TenantId = tenantId,
                     UserId = userId,
@@ -88,6 +89,7 @@ namespace ap.nexus.settingmanager.Infrastructure.Data
                     {
                         Id = Guid.NewGuid(),
                         Name = definition.Name,
+                        Description = definition.Description,
                         Value = definition.DefaultValue.ToString(),
                         TenantId = tenantId,
                         CreatedDate = DateTime.UtcNow,
