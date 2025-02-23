@@ -1,8 +1,9 @@
-﻿using ap.nexus.abstractions.Frameworks.SettingManagement;
+﻿using ap.nexus.abstractions.Frameworks.DependencyInjection;
+using ap.nexus.abstractions.Frameworks.SettingManagement;
 
 namespace ap.nexus.agents.application.Settings
 {
-    public class AgentsSettings
+    public class AgentsSettings : ITransientService
     {
         private ISettingManager _settingManager;
         public AgentsSettings(ISettingManager settingManager)
