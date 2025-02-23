@@ -1,5 +1,7 @@
 ﻿using ap.nexus.agents.infrastructure.Data;
+using ap.nexus.agents.infrastructure.Data.Repositories;
 using ap.nexus.agents.infrastructure.DateTimeProviders;
+using ap.nexus.core.Data;
 using AP.Nexus.Core.Modularity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -11,18 +13,30 @@ namespace ap.nexus.agents.infrastructure
     {
         public override void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
-            // Register the AgentsDbContext using SQL Server or In-Memory for tests.
-            services.AddDbContext<AgentsDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            services.AddNexusDbContext<AgentsDbContext>(options =>
+            {
+                options.DbContextOptionsAction = builder =>
+                    builder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
 
-            // Register the generic repository.
-            services.Scan(scan => scan
-            .FromAssemblyOf<AgentsDbContext>()
-            .AddClasses(classes => classes.Where(type => type.Namespace.Contains("ap.nexus.agents.infrastructure")))
-            .AsImplementedInterfaces()
-            .WithScopedLifetime());
+                options.AddDefaultRepositories(typeof(GenericRepository<>));
+
+
+            });
 
             services.AddTransient<IDateTimeProvider, DateTimeProvider>();
+        }
+
+        public override async Task InitializeAsync()
+        {
+            // Get the DbContext from service provider
+            using var scope = ServiceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AgentsDbContext>();
+
+            // Apply any pending migrations
+            await dbContext.Database.MigrateAsync();
+            DatabaseSeeder.Seed(dbContext);
+
+            await base.InitializeAsync();
         }
     }
 }

@@ -10,12 +10,13 @@ using ap.nexus.settingmanager.Application;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// First register all infrastructure modules
 builder.Services.AddModule<SettingManagerInfrastructureModule>(builder.Configuration);
-builder.Services.AddModule<SettingManagerApplicationModule>(builder.Configuration);
-
-
-builder.Services.AddModule<AgentsApplicationModule>(builder.Configuration);
 builder.Services.AddModule<AgentsInfrastructureModule>(builder.Configuration);
+
+// Then register application modules
+builder.Services.AddModule<SettingManagerApplicationModule>(builder.Configuration);
+builder.Services.AddModule<AgentsApplicationModule>(builder.Configuration);
 
 // Add FastEndpoints.
 builder.Services.AddFastEndpoints()
@@ -29,11 +30,6 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope()) 
-{ 
-    var context = scope.ServiceProvider.GetRequiredService<AgentsDbContext>(); 
-    context.Database.Migrate(); DatabaseSeeder.Seed(context); 
-}
 
 await app.Services.InitializeModulesAsync();
 

@@ -4,9 +4,8 @@ using AP.Nexus.Core.Modularity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
-using ap.nexus.core.data;
 using ap.nexus.settingmanager.Infrastructure.Data.Repositories;
-using ap.nexus.settingmanager.Domain.Entities;
+using ap.nexus.core.Data;
 
 namespace ap.nexus.settingmanager.Application
 {
@@ -15,17 +14,16 @@ namespace ap.nexus.settingmanager.Application
        public override void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
             services.AddScoped<ISettingStore, EntityFrameworkSettingStore>();
-            services.AddDbContext<SettingsDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
-            // Register the generic repository.
-            //services.Scan(scan => scan
-            //.FromAssemblyOf<SettingsDbContext>()
-            //.AddClasses(classes => classes.Where(type => type.Name.EndsWith("Repository")))
-            //.AsImplementedInterfaces()
-            //.WithScopedLifetime());
+            services.AddNexusDbContext<SettingsDbContext>(options =>
+            {
+                options.DbContextOptionsAction = builder =>
+                    builder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
 
-            services.AddScoped<IGenericRepository<Setting>, GenericSettingRepository<Setting>>();
+                options.AddDefaultRepositories(typeof(GenericSettingRepository<>));
+
+               
+            });
         }
         public override async Task InitializeAsync()
         {
