@@ -28,7 +28,7 @@ namespace ap.nexus.agents.application
             var settingManager = scope.ServiceProvider.GetRequiredService<ISettingManager>();
             var settingStore = scope.ServiceProvider.GetRequiredService<ISettingStore>();
 
-            var definitions = AgentsSettings.GetDefinitions();
+            var definitions = AgentsSettingDefinitions.GetDefinitions();
             await settingManager.DefineSettingsAsync(definitions);
 
             if (settingStore is EntityFrameworkSettingStore efStore)

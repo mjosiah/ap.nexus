@@ -4,7 +4,7 @@
     {
         public Type SchemaType { get; }
 
-        public JsonSettingDefinition(string name, Type schemaType) : base()
+        public JsonSettingDefinition(string name, Type schemaType) : base(name)
         {
             SchemaType = schemaType ?? throw new ArgumentNullException(nameof(schemaType));
         }

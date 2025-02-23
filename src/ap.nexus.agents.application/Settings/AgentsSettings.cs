@@ -3,14 +3,8 @@ using ap.nexus.core.Settings.Definitions;
 
 namespace ap.nexus.agents.application.Settings
 {
-    public class AgentsSettings
-    {
-        private readonly ISettingManager _settingManager;
-        
-        private AgentsSettings(ISettingManager settingManager)
-        {
-            _settingManager = settingManager;
-        }
+    public class AgentsSettingDefinitions
+    {       
 
         // Constants for setting names - makes it easier to reference settings
         public const string BatchSize = "Nexus:Agents:BatchSize";
@@ -59,26 +53,26 @@ namespace ap.nexus.agents.application.Settings
         }
 
         // Methods to access settings
-        public async Task<int> GetBatchSizeAsync(Guid? tenantId = null)
-        {
-            return await _settingManager.GetSettingValueAsync<int>(
-                BatchSize,
-                tenantId);
-        }
+        //public async Task<int> GetBatchSizeAsync(Guid? tenantId = null)
+        //{
+        //    return await _settingManager.GetSettingValueAsync<int>(
+        //        BatchSize,
+        //        tenantId);
+        //}
 
-        public async Task<bool> IsOcrEnabledAsync(Guid? tenantId = null)
-        {
-            return await _settingManager.GetSettingValueAsync<bool>(
-                OcrEnabled,
-                tenantId);
-        }
+        //public async Task<bool> IsOcrEnabledAsync(Guid? tenantId = null)
+        //{
+        //    return await _settingManager.GetSettingValueAsync<bool>(
+        //        OcrEnabled,
+        //        tenantId);
+        //}
 
-        public async Task<OcrConfig> GetOcrConfigAsync(Guid? tenantId = null)
-        {
-            return await _settingManager.GetSettingValueAsync<OcrConfig>(
-                OcrConfig,
-                tenantId);
-        }
+        //public async Task<OcrConfig> GetOcrConfigAsync(Guid? tenantId = null)
+        //{
+        //    return await _settingManager.GetSettingValueAsync<OcrConfig>(
+        //        OcrConfig,
+        //        tenantId);
+        //}
     }
 
     public class OcrConfig
