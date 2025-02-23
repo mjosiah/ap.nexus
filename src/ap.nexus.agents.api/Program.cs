@@ -1,8 +1,6 @@
 using FastEndpoints;
 using FastEndpoints.Swagger;
 using StackExchange.Redis;
-using ap.nexus.agents.infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using ap.nexus.agents.infrastructure;
 using ap.nexus.agents.application;
 using AP.Nexus.Core.Extensions;
@@ -11,12 +9,12 @@ using ap.nexus.settingmanager.Application;
 var builder = WebApplication.CreateBuilder(args);
 
 // First register all infrastructure modules
-builder.Services.AddModule<SettingManagerInfrastructureModule>(builder.Configuration);
-builder.Services.AddModule<AgentsInfrastructureModule>(builder.Configuration);
+builder.Services.AddNexusModule<SettingManagerInfrastructureModule>(builder.Configuration);
+builder.Services.AddNexusModule<AgentsInfrastructureModule>(builder.Configuration);
 
 // Then register application modules
-builder.Services.AddModule<SettingManagerApplicationModule>(builder.Configuration);
-builder.Services.AddModule<AgentsApplicationModule>(builder.Configuration);
+builder.Services.AddNexusModule<SettingManagerApplicationModule>(builder.Configuration);
+builder.Services.AddNexusModule<AgentsApplicationModule>(builder.Configuration);
 
 // Add FastEndpoints.
 builder.Services.AddFastEndpoints()
@@ -31,7 +29,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 var app = builder.Build();
 
 
-await app.Services.InitializeModulesAsync();
+await app.Services.InitializeNexusModulesAsync();
 
 // Configure middleware.
 app.UseFastEndpoints()

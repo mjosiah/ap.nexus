@@ -3,7 +3,6 @@ using ap.nexus.abstractions.Frameworks.SettingManagement;
 using ap.nexus.agents.application.Services.ChatServices;
 using ap.nexus.agents.application.Services;
 using ap.nexus.agents.application.Settings;
-using ap.nexus.core.Modularity;
 using ap.nexus.settingmanager.Infrastructure.Data;
 using AP.Nexus.Core.Modularity;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,7 +28,7 @@ namespace ap.nexus.agents.application
             var settingManager = scope.ServiceProvider.GetRequiredService<ISettingManager>();
             var settingStore = scope.ServiceProvider.GetRequiredService<ISettingStore>();
 
-            var definitions = AgentsSettingDefinitions.GetDefinitions();
+            var definitions = AgentsSettings.GetDefinitions();
             await settingManager.DefineSettingsAsync(definitions);
 
             if (settingStore is EntityFrameworkSettingStore efStore)

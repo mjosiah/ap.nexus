@@ -8,7 +8,7 @@ namespace AP.Nexus.Core.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddModule<TModule>(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddNexusModule<TModule>(this IServiceCollection services, IConfiguration configuration)
             where TModule : NexusModule
         {
             // Create instance of module
@@ -24,7 +24,7 @@ namespace AP.Nexus.Core.Extensions
             return services;
         }
 
-        public static async Task InitializeModulesAsync(this IServiceProvider serviceProvider)
+        public static async Task InitializeNexusModulesAsync(this IServiceProvider serviceProvider)
         {
             var modules = serviceProvider.GetServices<NexusModule>();
 
