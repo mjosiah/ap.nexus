@@ -10,13 +10,4 @@
     <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.40.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\ap.nexus.abstractions\ap.nexus.abstractions.csproj" />
-    <ProjectReference Include="..\ap.nexus.core\ap.nexus.core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Common\" />
-  </ItemGroup>
-
 </Project>

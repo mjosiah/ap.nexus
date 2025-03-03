@@ -1,0 +1,92 @@
+﻿@* ChatHeader.razor *@
+<div class="navbar navbar-dark bg-dark px-3">
+    <button class="btn btn-link text-light" @onclick="ToggleSidebar">
+        <i class="bi bi-list fs-4"></i>
+    </button>
+
+    @if (_isEditing)
+    {
+        <input @ref="_titleInput"
+               class="form-control bg-dark text-light border-secondary mx-auto"
+               style="max-width: 50%;"
+               value="@ChatTitle"
+               @onblur="SaveTitle"
+               @onkeydown="HandleTitleKeyDown" />
+    }
+    else
+    {
+        <div class="text-secondary text-center mx-auto"
+             style="cursor: pointer;"
+             @onclick="StartEditing">
+            @ChatTitle
+        </div>
+    }
+
+    <div class="dropdown">
+        <button class="btn btn-link text-light dropdown-toggle"
+                type="button"
+                id="chatOptionsDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false">
+            <i class="bi bi-three-dots-vertical"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chatOptionsDropdown">
+            <li><a class="dropdown-item" href="#">New Chat</a></li>
+            <li><a class="dropdown-item" href="#">Export Chat</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#">Delete Chat</a></li>
+        </ul>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string ChatTitle { get; set; } = "Untitled Chat";
+
+    [Parameter]
+    public EventCallback<string> ChatTitleChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnToggleSidebar { get; set; }
+
+    private bool _isEditing = false;
+    private ElementReference _titleInput;
+
+    private async Task ToggleSidebar()
+    {
+        await OnToggleSidebar.InvokeAsync();
+    }
+
+    private void StartEditing()
+    {
+        _isEditing = true;
+        StateHasChanged();
+
+        // Focus the input in the next render cycle
+        _ = Task.Delay(10).ContinueWith(_ => InvokeAsync(async () =>
+        {
+            await _titleInput.FocusAsync();
+        }));
+    }
+
+    private async Task SaveTitle()
+    {
+        _isEditing = false;
+        // In a real app, you'd get the value from the input
+        // For simplicity, we're not changing the actual value here
+        await ChatTitleChanged.InvokeAsync(ChatTitle);
+    }
+
+    private async Task HandleTitleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SaveTitle();
+        }
+        else if (e.Key == "Escape")
+        {
+            _isEditing = false;
+            StateHasChanged();
+        }
+    }
+}

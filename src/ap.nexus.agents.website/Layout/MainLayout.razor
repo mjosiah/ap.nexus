@@ -1,16 +1,93 @@
-﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+﻿@using ap.nexus.agents.website.Components
+@inherits LayoutComponentBase
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
+<div class="app-container d-flex flex-column vh-100 bg-dark text-light">
+    <ChatHeader ChatTitle="@_currentChat?.Title" 
+                ChatTitleChanged="UpdateChatTitle"
+                OnToggleSidebar="ToggleSidebar" />
+    
+    <div class="d-flex flex-grow-1 position-relative">
+        <ChatSidebar IsCollapsed="@_sidebarCollapsed"
+                    ChatHistory="@_chatHistory"
+                    ActiveChatId="@_currentChatId"
+                    OnChatSelected="SelectChat" />
+        
+        <div class="@(_sidebarCollapsed ? "col-12" : "col-md-9 col-lg-10 offset-md-3 offset-lg-2") d-flex flex-column" 
+             style="height: calc(100vh - 56px);">
+             
+            <div class="action-buttons d-flex p-2 border-bottom border-secondary">
+                <button class="btn @(_webSearchActive ? "btn-primary" : "btn-outline-secondary") me-2" 
+                        @onclick="ToggleWebSearch">
+                    Web Search
+                </button>
+                <button class="btn @(_deepThinkingActive ? "btn-primary" : "btn-outline-secondary")" 
+                        @onclick="ToggleDeepThinking">
+                    Deep Thinking
+                </button>
+            </div>
+            
+            @* This is where page content will be rendered *@
             @Body
-        </article>
-    </main>
+        </div>
+    </div>
 </div>
+
+@code {
+    private bool _sidebarCollapsed = false;
+    private bool _webSearchActive = true;
+    private bool _deepThinkingActive = false;
+    private string _currentChatId = "chat1";
+    
+    private List<ChatSidebar.ChatInfo> _chatHistory = new()
+    {
+        new ChatSidebar.ChatInfo 
+        { 
+            Id = "chat1", 
+            Title = "Replit chat text area design implementation",
+            LastActivity = DateTime.Now.AddHours(-20)
+        },
+        new ChatSidebar.ChatInfo 
+        { 
+            Id = "chat2", 
+            Title = "Web component for analytics dashboard",
+            LastActivity = DateTime.Now.AddDays(-2)
+        },
+        new ChatSidebar.ChatInfo 
+        { 
+            Id = "chat3", 
+            Title = "React code review and optimization",
+            LastActivity = DateTime.Now.AddDays(-4)
+        }
+    };
+    
+    private ChatSidebar.ChatInfo _currentChat => _chatHistory.FirstOrDefault(c => c.Id == _currentChatId);
+    
+    private void ToggleSidebar()
+    {
+        _sidebarCollapsed = !_sidebarCollapsed;
+    }
+    
+    private void ToggleWebSearch()
+    {
+        _webSearchActive = !_webSearchActive;
+    }
+    
+    private void ToggleDeepThinking()
+    {
+        _deepThinkingActive = !_deepThinkingActive;
+    }
+    
+    private void SelectChat(string chatId)
+    {
+        _currentChatId = chatId;
+    }
+    
+    private void UpdateChatTitle(string newTitle)
+    {
+        var chat = _chatHistory.FirstOrDefault(c => c.Id == _currentChatId);
+        if (chat != null)
+        {
+            chat.Title = newTitle;
+        }
+    }
+}

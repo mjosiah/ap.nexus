@@ -1,0 +1,301 @@
+﻿@page "/"
+@page "/chat"
+@page "/chat/{ThreadId}"
+@using Microsoft.SemanticKernel.ChatCompletion
+@using ap.nexus.agents.website.Components
+@using ap.nexus.agents.website.Services
+@inject StateContainer StateContainer
+@inject IChatService ChatService
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>@_pageTitle</PageTitle>
+
+<div class="d-flex flex-column h-100">
+    <!-- Agent Selection -->
+    @if (!_threadId.HasValue)
+    {
+        <div class="agent-selector p-3 mb-3">
+            <div class="card bg-dark-secondary">
+                <div class="card-header">
+                    <h5 class="mb-0">Select an Agent to Chat With</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @foreach (var agent in StateContainer.AvailableAgents.Where(a => a.IsActive))
+                        {
+                            <div class="col-md-4 mb-3">
+                                <div class="agent-card card h-100 @(StateContainer.CurrentAgentId == agent.Id ? "border-primary" : "border-secondary")"
+                                     @onclick="() => SelectAgent(agent.Id)">
+                                    <div class="card-body text-center">
+                                        @if (!string.IsNullOrEmpty(agent.AvatarUrl))
+                                        {
+                                            <img src="@agent.AvatarUrl" alt="@agent.Name" class="avatar rounded-circle mb-3" style="width: 64px; height: 64px;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="avatar bg-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px;">
+                                                <i class="bi bi-robot fs-3 text-white"></i>
+                                            </div>
+                                        }
+                                        <h5>@agent.Name</h5>
+                                        <p class="text-muted small">@agent.Description</p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <MessageList Messages="@_messages" />
+
+    <MessageInput OnSendMessage="SendMessage" 
+                  WebSearchActive="@StateContainer.IsWebSearchEnabled"
+                  DeepThinkingActive="@StateContainer.IsDeepThinkingEnabled"
+                  OnToggleWebSearch="ToggleWebSearch" 
+                  OnToggleDeepThinking="ToggleDeepThinking"
+                  IsDisabled="@_isMessageInputDisabled" />
+</div>
+
+@code {
+    [Parameter]
+    public string ThreadId { get; set; }
+    
+    private List<MessageList.MessageModel> _messages = new();
+    private string _pageTitle = "Chat";
+    private Guid? _threadId;
+    private bool _isMessageInputDisabled = false;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        // Subscribe to state changes
+        StateContainer.MessagesChanged += OnMessagesChanged;
+        StateContainer.CurrentAgentChanged += OnCurrentAgentChanged;
+        StateContainer.FeatureFlagsChanged += OnFeatureFlagsChanged;
+        
+        // Get available agents if needed
+        if (!StateContainer.AvailableAgents.Any())
+        {
+            // In a real implementation, you would load available agents from an API
+            // For now, we'll add some sample agents
+            StateContainer.AvailableAgents = new List<AgentDto>
+            {
+                new AgentDto 
+                { 
+                    Id = Guid.NewGuid(), 
+                    Name = "General Assistant", 
+                    Description = "A helpful assistant for general questions",
+                    IsActive = true
+                },
+                new AgentDto 
+                { 
+                    Id = Guid.NewGuid(), 
+                    Name = "Code Helper", 
+                    Description = "Specialized in programming assistance",
+                    IsActive = true
+                },
+                new AgentDto 
+                { 
+                    Id = Guid.NewGuid(), 
+                    Name = "Data Analyst", 
+                    Description = "Helps with data analysis tasks",
+                    IsActive = true
+                }
+            };
+        }
+        
+        await base.OnInitializedAsync();
+    }
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        // Check if thread ID is provided
+        if (!string.IsNullOrEmpty(ThreadId) && Guid.TryParse(ThreadId, out var parsedThreadId))
+        {
+            _threadId = parsedThreadId;
+            StateContainer.CurrentChatSessionId = parsedThreadId;
+            
+            // Load thread history
+            await LoadThreadHistoryAsync(parsedThreadId);
+        }
+        
+        UpdatePageTitle();
+        
+        await base.OnParametersSetAsync();
+    }
+    
+    private async Task LoadThreadHistoryAsync(Guid threadId)
+    {
+        try
+        {
+            // Load message history from the service
+            var messages = await ChatService.GetMessageHistoryAsync(threadId);
+            
+            // Store in state container
+            StateContainer.SetMessagesForChat(threadId, messages);
+            
+            // Update messages display
+            UpdateMessages();
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            Console.Error.WriteLine($"Error loading thread history: {ex.Message}");
+        }
+    }
+    
+    private void UpdateMessages()
+    {
+        var threadId = _threadId ?? StateContainer.CurrentChatSessionId;
+        if (threadId == Guid.Empty)
+        {
+            _messages.Clear();
+            return;
+        }
+        
+        var stateMessages = StateContainer.GetMessagesForChat(threadId);
+        
+        _messages = stateMessages.Select(m => new MessageList.MessageModel
+        {
+            Id = m.Id.ToString(),
+            Content = m.TextContent,
+            IsFromUser = m.IsFromUser,
+            Timestamp = m.Timestamp
+        }).ToList();
+        
+        StateHasChanged();
+        
+        // Scroll to bottom after update
+        _ = ScrollToBottomAsync();
+    }
+    
+    private void UpdatePageTitle()
+    {
+        var agentName = StateContainer.GetCurrentAgent()?.Name;
+        var sessionName = StateContainer.GetCurrentChatSession()?.Title;
+        
+        if (!string.IsNullOrEmpty(sessionName))
+        {
+            _pageTitle = sessionName;
+        }
+        else if (!string.IsNullOrEmpty(agentName))
+        {
+            _pageTitle = $"Chat with {agentName}";
+        }
+        else
+        {
+            _pageTitle = "Chat";
+        }
+    }
+    
+    private async Task SendMessage(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return;
+        if (StateContainer.CurrentAgentId == Guid.Empty && !_threadId.HasValue)
+        {
+            // No agent selected yet
+            return;
+        }
+        
+        // Disable input while processing
+        _isMessageInputDisabled = true;
+        
+        try
+        {
+            // Add message to UI immediately for responsive feel
+            var tempMessage = new MessageList.MessageModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                Content = content,
+                IsFromUser = true,
+                Timestamp = DateTime.Now
+            };
+            
+            _messages.Add(tempMessage);
+            await ScrollToBottomAsync();
+            
+            // Send via API
+            var agentId = StateContainer.CurrentAgentId;
+            var response = await ChatService.SendMessageAsync(agentId, content, _threadId);
+            
+            // Update thread ID if this is a new thread
+            if (!_threadId.HasValue)
+            {
+                _threadId = response.ChatSessionId;
+                StateContainer.CurrentChatSessionId = response.ChatSessionId;
+            }
+            
+            // Messages will be updated through the state container events
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            var errorMessage = new MessageList.MessageModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                Content = $"Error sending message: {ex.Message}",
+                IsFromUser = false,
+                Timestamp = DateTime.Now
+            };
+            
+            _messages.Add(errorMessage);
+            await ScrollToBottomAsync();
+        }
+        finally
+        {
+            _isMessageInputDisabled = false;
+        }
+    }
+    
+    private async Task ScrollToBottomAsync()
+    {
+        await Task.Delay(50); // Small delay to ensure rendering complete
+        await JS.InvokeVoidAsync("scrollToBottom", ".messages-container");
+    }
+    
+    private void OnMessagesChanged(Guid chatId)
+    {
+        var threadId = _threadId ?? StateContainer.CurrentChatSessionId;
+        if (chatId == threadId)
+        {
+            UpdateMessages();
+        }
+    }
+    
+    private void OnCurrentAgentChanged()
+    {
+        UpdatePageTitle();
+        StateHasChanged();
+    }
+    
+    private void OnFeatureFlagsChanged()
+    {
+        StateHasChanged();
+    }
+    
+    private void SelectAgent(Guid agentId)
+    {
+        StateContainer.CurrentAgentId = agentId;
+    }
+    
+    private void ToggleWebSearch()
+    {
+        StateContainer.ToggleWebSearch();
+    }
+    
+    private void ToggleDeepThinking()
+    {
+        StateContainer.ToggleDeepThinking();
+    }
+    
+    public void Dispose()
+    {
+        // Unsubscribe from events
+        StateContainer.MessagesChanged -= OnMessagesChanged;
+        StateContainer.CurrentAgentChanged -= OnCurrentAgentChanged;
+        StateContainer.FeatureFlagsChanged -= OnFeatureFlagsChanged;
+    }
+}

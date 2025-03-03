@@ -1,0 +1,415 @@
+@* ChatHeader.razor *@
+<div class="navbar navbar-dark bg-dark px-3">
+    <button class="btn btn-link text-light" @onclick="ToggleSidebar">
+        <i class="bi bi-list fs-4"></i>
+    </button>
+    
+    @if (_isEditing)
+    {
+        <input @ref="_titleInput" 
+               class="form-control bg-dark text-light border-secondary mx-auto" 
+               style="max-width: 50%;"
+               value="@ChatTitle" 
+               @onblur="SaveTitle"
+               @onkeydown="HandleTitleKeyDown" />
+    }
+    else
+    {
+        <div class="text-secondary text-center mx-auto" 
+             style="cursor: pointer;"
+             @onclick="StartEditing">
+            @ChatTitle
+        </div>
+    }
+    
+    <div class="dropdown">
+        <button class="btn btn-link text-light dropdown-toggle" 
+                type="button" 
+                id="chatOptionsDropdown" 
+                data-bs-toggle="dropdown" 
+                aria-expanded="false">
+            <i class="bi bi-three-dots-vertical"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chatOptionsDropdown">
+            <li><a class="dropdown-item" href="#">New Chat</a></li>
+            <li><a class="dropdown-item" href="#">Export Chat</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#">Delete Chat</a></li>
+        </ul>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string ChatTitle { get; set; } = "Untitled Chat";
+    
+    [Parameter]
+    public EventCallback<string> ChatTitleChanged { get; set; }
+    
+    [Parameter]
+    public EventCallback OnToggleSidebar { get; set; }
+    
+    private bool _isEditing = false;
+    private ElementReference _titleInput;
+    
+    private async Task ToggleSidebar()
+    {
+        await OnToggleSidebar.InvokeAsync();
+    }
+    
+    private void StartEditing()
+    {
+        _isEditing = true;
+        StateHasChanged();
+        
+        // Focus the input in the next render cycle
+        _ = Task.Delay(10).ContinueWith(_ => InvokeAsync(async () => 
+        {
+            await _titleInput.FocusAsync();
+        }));
+    }
+    
+    private async Task SaveTitle()
+    {
+        _isEditing = false;
+        // In a real app, you'd get the value from the input
+        // For simplicity, we're not changing the actual value here
+        await ChatTitleChanged.InvokeAsync(ChatTitle);
+    }
+    
+    private async Task HandleTitleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SaveTitle();
+        }
+        else if (e.Key == "Escape")
+        {
+            _isEditing = false;
+            StateHasChanged();
+        }
+    }
+}
+
+@* MessageList.razor *@
+<div class="messages-container d-flex flex-column overflow-auto p-3" @ref="_messagesContainer">
+    @foreach (var message in Messages)
+    {
+        <div class="message-block mb-3">
+            <div class="d-flex @(message.IsFromUser ? "justify-content-end" : "")">
+                @if (!message.IsFromUser)
+                {
+                    <div class="avatar bg-primary rounded d-flex align-items-center justify-content-center me-2" 
+                         style="width: 40px; height: 40px;">
+                        <i class="bi bi-robot text-white"></i>
+                    </div>
+                }
+                
+                <div class="@(message.IsFromUser 
+                               ? "bg-secondary text-white rounded-3 p-3 mw-75" 
+                               : "bg-primary text-white rounded-3 p-3 mw-75")">
+                    @((MarkupString)FormatMessage(message.Content))
+                </div>
+                
+                @if (message.IsFromUser)
+                {
+                    <div class="avatar bg-secondary rounded d-flex align-items-center justify-content-center ms-2" 
+                         style="width: 40px; height: 40px;">
+                        <i class="bi bi-person-fill text-white"></i>
+                    </div>
+                }
+            </div>
+            <div class="text-muted small @(message.IsFromUser ? "text-end" : "text-start") mt-1">
+                @message.Timestamp.ToString("g")
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<MessageModel> Messages { get; set; } = new();
+    
+    private ElementReference _messagesContainer;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await ScrollToBottom();
+    }
+    
+    private async Task ScrollToBottom()
+    {
+        await JS.InvokeVoidAsync("scrollToBottom", _messagesContainer);
+    }
+    
+    private string FormatMessage(string content)
+    {
+        // Convert line breaks to <br> tags
+        return content.Replace(Environment.NewLine, "<br>");
+    }
+    
+    public class MessageModel
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Content { get; set; } = "";
+        public bool IsFromUser { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+    }
+}
+
+@* MessageInput.razor *@
+<div class="message-input bg-dark border-top border-secondary p-3">
+    <div class="input-group position-relative bg-dark-subtle rounded">
+        <div class="d-flex position-absolute start-0 ps-3 top-50 translate-middle-y">
+            <button class="btn btn-link text-secondary" 
+                    title="Attach files">
+                <i class="bi bi-paperclip"></i>
+            </button>
+            
+            <button class="btn btn-link @(WebSearchActive ? "text-primary" : "text-secondary")" 
+                    title="Web Search"
+                    @onclick="ToggleWebSearch">
+                <i class="bi bi-globe"></i>
+            </button>
+            
+            <button class="btn btn-link @(DeepThinkingActive ? "text-primary" : "text-secondary")" 
+                    title="Deep Thinking"
+                    @onclick="ToggleDeepThinking">
+                <i class="bi bi-lightning"></i>
+            </button>
+        </div>
+        
+        <textarea @bind="MessageText" 
+                  @bind:event="oninput" 
+                  @onkeydown="HandleKeyDown"
+                  class="form-control border-0 py-3 ps-5 pe-5 bg-dark-subtle text-light"
+                  placeholder="Type your message..."
+                  style="resize: none; min-height: 60px;"
+                  rows="1"></textarea>
+                  
+        <button class="btn btn-link text-secondary position-absolute end-0 pe-3 top-50 translate-middle-y" 
+                @onclick="SendMessage"
+                disabled="@string.IsNullOrWhiteSpace(MessageText)">
+            <i class="bi bi-send-fill @(string.IsNullOrWhiteSpace(MessageText) ? "text-muted" : "text-primary")"></i>
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnSendMessage { get; set; }
+    
+    private string MessageText { get; set; } = "";
+    private bool WebSearchActive { get; set; } = true;
+    private bool DeepThinkingActive { get; set; } = false;
+    
+    private async Task SendMessage()
+    {
+        if (!string.IsNullOrWhiteSpace(MessageText))
+        {
+            await OnSendMessage.InvokeAsync(MessageText);
+            MessageText = "";
+            StateHasChanged();
+        }
+    }
+    
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessage();
+        }
+    }
+    
+    private void ToggleWebSearch()
+    {
+        WebSearchActive = !WebSearchActive;
+    }
+    
+    private void ToggleDeepThinking()
+    {
+        DeepThinkingActive = !DeepThinkingActive;
+    }
+}
+
+@* ChatSidebar.razor *@
+<div class="@(IsCollapsed ? "d-none" : "d-block") col-md-3 col-lg-2 p-0 bg-dark position-fixed h-100 border-end border-secondary" 
+     style="top: 56px; z-index: 1000;">
+    @foreach (var chat in ChatHistory)
+    {
+        <div class="chat-history-item p-3 border-bottom border-secondary @(chat.Id == ActiveChatId ? "bg-dark-subtle" : "")"
+             style="cursor: pointer;"
+             @onclick="() => SelectChat(chat.Id)">
+            <div class="text-truncate text-light">@chat.Title</div>
+            <div class="text-secondary small">@chat.LastActivity.ToFriendlyString()</div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public bool IsCollapsed { get; set; }
+    
+    [Parameter]
+    public List<ChatInfo> ChatHistory { get; set; } = new();
+    
+    [Parameter]
+    public string ActiveChatId { get; set; }
+    
+    [Parameter]
+    public EventCallback<string> OnChatSelected { get; set; }
+    
+    private async Task SelectChat(string chatId)
+    {
+        await OnChatSelected.InvokeAsync(chatId);
+    }
+    
+    public class ChatInfo
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Title { get; set; } = "Untitled Chat";
+        public DateTime LastActivity { get; set; } = DateTime.Now;
+    }
+}
+
+@* MainLayout.razor *@
+@inherits LayoutComponentBase
+
+<div class="app-container d-flex flex-column vh-100 bg-dark text-light">
+    <ChatHeader ChatTitle="@_currentChat?.Title" 
+                ChatTitleChanged="UpdateChatTitle"
+                OnToggleSidebar="ToggleSidebar" />
+    
+    <div class="d-flex flex-grow-1 position-relative">
+        <ChatSidebar IsCollapsed="@_sidebarCollapsed"
+                    ChatHistory="@_chatHistory"
+                    ActiveChatId="@_currentChatId"
+                    OnChatSelected="SelectChat" />
+        
+        <div class="@(_sidebarCollapsed ? "col-12" : "col-md-9 col-lg-10 offset-md-3 offset-lg-2") d-flex flex-column" 
+             style="height: calc(100vh - 56px);">
+             
+            <div class="action-buttons d-flex p-2 border-bottom border-secondary">
+                <button class="btn @(_webSearchActive ? "btn-primary" : "btn-outline-secondary") me-2" 
+                        @onclick="ToggleWebSearch">
+                    Web Search
+                </button>
+                <button class="btn @(_deepThinkingActive ? "btn-primary" : "btn-outline-secondary")" 
+                        @onclick="ToggleDeepThinking">
+                    Deep Thinking
+                </button>
+            </div>
+            
+            <MessageList Messages="@_messages" />
+            
+            <MessageInput OnSendMessage="SendMessage" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _sidebarCollapsed = false;
+    private bool _webSearchActive = true;
+    private bool _deepThinkingActive = false;
+    private string _currentChatId = "chat1";
+    private List<MessageList.MessageModel> _messages = new();
+    
+    private List<ChatSidebar.ChatInfo> _chatHistory = new()
+    {
+        new ChatSidebar.ChatInfo 
+        { 
+            Id = "chat1", 
+            Title = "Replit chat text area design implementation",
+            LastActivity = DateTime.Now.AddHours(-20)
+        },
+        new ChatSidebar.ChatInfo 
+        { 
+            Id = "chat2", 
+            Title = "Web component for analytics dashboard",
+            LastActivity = DateTime.Now.AddDays(-2)
+        },
+        new ChatSidebar.ChatInfo 
+        { 
+            Id = "chat3", 
+            Title = "React code review and optimization",
+            LastActivity = DateTime.Now.AddDays(-4)
+        }
+    };
+    
+    private ChatSidebar.ChatInfo _currentChat => _chatHistory.FirstOrDefault(c => c.Id == _currentChatId);
+    
+    protected override void OnInitialized()
+    {
+        // Sample messages for demonstration
+        _messages.Add(new MessageList.MessageModel
+        {
+            Content = "I want you to design a chat interface that replicates the attached image closely. It is essential that the design of the chat interface matches the image closely.",
+            IsFromUser = true,
+            Timestamp = DateTime.Now.AddMinutes(-5)
+        });
+        
+        _messages.Add(new MessageList.MessageModel
+        {
+            Content = "I'll help implement:\n• Selected state for websearch and deep thinking buttons\n• A burger menu icon for collapsing/expanding chat history\n• Style these elements to match Replit's UI",
+            IsFromUser = false,
+            Timestamp = DateTime.Now.AddMinutes(-3)
+        });
+    }
+    
+    private void ToggleSidebar()
+    {
+        _sidebarCollapsed = !_sidebarCollapsed;
+    }
+    
+    private void ToggleWebSearch()
+    {
+        _webSearchActive = !_webSearchActive;
+    }
+    
+    private void ToggleDeepThinking()
+    {
+        _deepThinkingActive = !_deepThinkingActive;
+    }
+    
+    private void SelectChat(string chatId)
+    {
+        _currentChatId = chatId;
+    }
+    
+    private void UpdateChatTitle(string newTitle)
+    {
+        var chat = _chatHistory.FirstOrDefault(c => c.Id == _currentChatId);
+        if (chat != null)
+        {
+            chat.Title = newTitle;
+        }
+    }
+    
+    private async Task SendMessage(string messageText)
+    {
+        // Add user message
+        _messages.Add(new MessageList.MessageModel
+        {
+            Content = messageText,
+            IsFromUser = true,
+            Timestamp = DateTime.Now
+        });
+        
+        // Update chat activity
+        var chat = _chatHistory.FirstOrDefault(c => c.Id == _currentChatId);
+        if (chat != null)
+        {
+            chat.LastActivity = DateTime.Now;
+        }
+        
+        // Simulate response after delay
+        await Task.Delay(1500);
+        
+        _messages.Add(new MessageList.MessageModel
+        {
+            Content = "I received your message! This is a simulated response to show how the chat interaction works.\n\nAny line breaks you included will be preserved in the response, maintaining the formatting from your original message.",
+            IsFromUser = false,
+            Timestamp = DateTime.Now
+        });
+    }
+}

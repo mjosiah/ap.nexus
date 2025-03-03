@@ -1,0 +1,106 @@
+﻿@using Microsoft.SemanticKernel.ChatCompletion
+@inject IJSRuntime JS
+
+<div class="messages-container d-flex flex-column overflow-auto p-3" @ref="_messagesContainer">
+    @foreach (var message in Messages)
+    {
+        <div class="message-block mb-3">
+            <div class="d-flex @(message.IsFromUser ? "justify-content-end" : "")">
+                @if (!message.IsFromUser)
+                {
+                    <div class="avatar bg-primary rounded d-flex align-items-center justify-content-center me-2"
+                         style="width: 40px; height: 40px;">
+                        <i class="bi bi-robot text-white"></i>
+                    </div>
+                }
+
+                <div class="@(message.IsFromUser
+                               ? "bg-secondary text-white rounded-3 p-3 mw-75"
+                               : "bg-primary text-white rounded-3 p-3 mw-75")">
+                    @if (message.ContentItems != null && message.ContentItems.Any())
+                    {
+                        <MessageContentDisplay ContentItems="message.ContentItems" FallbackText="message.Content" />
+                    }
+                    else
+                    {
+                        @((MarkupString)FormatMessage(message.Content))
+                    }
+                </div>
+
+                @if (message.IsFromUser)
+                {
+                    <div class="avatar bg-secondary rounded d-flex align-items-center justify-content-center ms-2"
+                         style="width: 40px; height: 40px;">
+                        <i class="bi bi-person-fill text-white"></i>
+                    </div>
+                }
+            </div>
+            <div class="text-muted small @(message.IsFromUser ? "text-end" : "text-start") mt-1">
+                @message.Timestamp.ToString("g")
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<MessageModel> Messages { get; set; } = new();
+
+    private ElementReference _messagesContainer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await ScrollToBottom();
+    }
+
+    private async Task ScrollToBottom()
+    {
+        await JS.InvokeVoidAsync("scrollToBottom", _messagesContainer);
+    }
+
+    private string FormatMessage(string content)
+    {
+        if (string.IsNullOrEmpty(content))
+            return string.Empty;
+
+        // Replace line breaks with <br> tags
+        var formatted = content.Replace(Environment.NewLine, "<br>");
+
+        // Format code blocks
+        formatted = FormatCodeBlocks(formatted);
+
+        return formatted;
+    }
+
+    private string FormatCodeBlocks(string content)
+    {
+        // Simple regex to find code blocks with language specifier
+        // This is a basic implementation - a production version would use a more robust solution
+        var regex = new System.Text.RegularExpressions.Regex(@"```(\w+)?\s*([\s\S]*?)```");
+
+        return regex.Replace(content, match =>
+        {
+            var language = match.Groups[1].Success ? match.Groups[1].Value : "plaintext";
+            var code = match.Groups[2].Value;
+
+            return $"<pre><code class=\"language-{language}\">{System.Web.HttpUtility.HtmlEncode(code)}</code></pre>";
+        });
+    }
+
+    // Public method that can be called from parent components
+    public async Task ScrollToBottomAsync()
+    {
+        await ScrollToBottom();
+    }
+
+    public class MessageModel
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Content { get; set; } = "";
+        public bool IsFromUser { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+
+        // Support for Semantic Kernel's content items
+        public ChatMessageContentItemCollection ContentItems { get; set; } = new();
+    }
+}

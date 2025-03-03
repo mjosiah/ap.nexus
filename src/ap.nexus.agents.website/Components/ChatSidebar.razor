@@ -1,0 +1,40 @@
+﻿@using ap.nexus.agents.website.Extensions
+@* ChatSidebar.razor *@
+<div class="@(IsCollapsed ? "d-none" : "d-block") col-md-3 col-lg-2 p-0 bg-dark position-fixed h-100 border-end border-secondary"
+     style="top: 56px; z-index: 1000;">
+    @foreach (var chat in ChatHistory)
+    {
+        <div class="chat-history-item p-3 border-bottom border-secondary @(chat.Id == ActiveChatId ? "bg-dark-subtle" : "")"
+             style="cursor: pointer;"
+             @onclick="() => SelectChat(chat.Id)">
+            <div class="text-truncate text-light">@chat.Title</div>
+            <div class="text-secondary small">@chat.LastActivity.ToFriendlyString()</div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public bool IsCollapsed { get; set; }
+
+    [Parameter]
+    public List<ChatInfo> ChatHistory { get; set; } = new();
+
+    [Parameter]
+    public string ActiveChatId { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnChatSelected { get; set; }
+
+    private async Task SelectChat(string chatId)
+    {
+        await OnChatSelected.InvokeAsync(chatId);
+    }
+
+    public class ChatInfo
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Title { get; set; } = "Untitled Chat";
+        public DateTime LastActivity { get; set; } = DateTime.Now;
+    }
+}

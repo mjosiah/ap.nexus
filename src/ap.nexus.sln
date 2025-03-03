@@ -27,6 +27,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{E8D5
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ap.nexus.agents.website", "ap.nexus.agents.website\ap.nexus.agents.website.csproj", "{936B4DF3-A844-4E95-99CB-C4AE7CE94CDC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ap.nexus.agents.apiclient", "ap.nexus.agents.apiclient\ap.nexus.agents.apiclient.csproj", "{9469E2C2-3531-4282-AFA2-AC63E3C78E5B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ap.nexus.agents.api.contracts", "ap.nexus.agents.api.contracts\ap.nexus.agents.api.contracts.csproj", "{61529160-B132-4FE0-8BB1-64614F862DD6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -73,6 +77,14 @@ Global
 		{936B4DF3-A844-4E95-99CB-C4AE7CE94CDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{936B4DF3-A844-4E95-99CB-C4AE7CE94CDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{936B4DF3-A844-4E95-99CB-C4AE7CE94CDC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9469E2C2-3531-4282-AFA2-AC63E3C78E5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9469E2C2-3531-4282-AFA2-AC63E3C78E5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9469E2C2-3531-4282-AFA2-AC63E3C78E5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9469E2C2-3531-4282-AFA2-AC63E3C78E5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61529160-B132-4FE0-8BB1-64614F862DD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61529160-B132-4FE0-8BB1-64614F862DD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61529160-B132-4FE0-8BB1-64614F862DD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61529160-B132-4FE0-8BB1-64614F862DD6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,30 +1,18 @@
 ﻿using ap.nexus.abstractions.Agents.DTOs;
 using ap.nexus.abstractions.Agents.Interfaces;
+using ap.nexus.agents.api.contracts;
 using ap.nexus.agents.application.Services.ChatServices;
 using FastEndpoints;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Memory;
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
 namespace ap.nexus.agents.api.Endpoints
 {
-    public class ChatRequest
-    {
-        [Required]
-        public Guid AgentId { get; set; }
-        public Guid? ThreadId { get; set; }
-        [Required]
-        public ChatMessageContent Message { get; set; }
-    }
 
-    public class ChatResponse
-    {
-        public ChatMessageContent Response { get; set; } = new();
-        public Guid ThreadId { get; set; }
-    }
+
+
     public class ChatEndpoint : Endpoint<ChatRequest, ChatResponse>
     {
         private readonly IAgentService _agentService;

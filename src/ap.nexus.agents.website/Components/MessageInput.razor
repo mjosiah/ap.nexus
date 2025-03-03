@@ -1,0 +1,147 @@
+﻿@inject IJSRuntime JS
+
+<div class="message-input bg-dark border-top border-secondary p-3">
+    <div class="input-group position-relative bg-dark-subtle rounded">
+        <div class="d-flex position-absolute start-0 ps-3 top-50 translate-middle-y">
+            <button class="btn btn-link text-secondary"
+                    title="Attach files"
+                    @onclick="HandleFileUpload"
+                    disabled="@IsDisabled">
+                <i class="bi bi-paperclip"></i>
+            </button>
+
+            <button class="btn btn-link @(WebSearchActive ? "text-primary" : "text-secondary")"
+                    title="Web Search"
+                    @onclick="HandleToggleWebSearch"
+                    disabled="@IsDisabled">
+                <i class="bi bi-globe"></i>
+            </button>
+
+            <button class="btn btn-link @(DeepThinkingActive ? "text-primary" : "text-secondary")"
+                    title="Deep Thinking"
+                    @onclick="HandleToggleDeepThinking"
+                    disabled="@IsDisabled">
+                <i class="bi bi-lightning"></i>
+            </button>
+        </div>
+
+        <textarea @bind="MessageText"
+                  @bind:event="oninput"
+                  @onkeydown="HandleKeyDown"
+                  @ref="TextAreaRef"
+                  class="form-control border-0 py-3 ps-5 pe-5 bg-dark-subtle text-light"
+                  placeholder="@Placeholder"
+                  style="resize: none; min-height: 60px;"
+                  disabled="@IsDisabled"
+                  rows="1"></textarea>
+
+        <button class="btn btn-link text-secondary position-absolute end-0 pe-3 top-50 translate-middle-y"
+                @onclick="HandleSendMessage"
+                disabled="@(IsDisabled || string.IsNullOrWhiteSpace(MessageText))">
+            <i class="bi bi-send-fill @(string.IsNullOrWhiteSpace(MessageText) ? "text-muted" : "text-primary")"></i>
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnSendMessage { get; set; }
+
+    [Parameter]
+    public EventCallback OnToggleWebSearch { get; set; }
+
+    [Parameter]
+    public EventCallback OnToggleDeepThinking { get; set; }
+
+    [Parameter]
+    public bool WebSearchActive { get; set; }
+
+    [Parameter]
+    public bool DeepThinkingActive { get; set; }
+
+    [Parameter]
+    public bool IsDisabled { get; set; }
+
+    [Parameter]
+    public string Placeholder { get; set; } = "Type your message...";
+
+    private string MessageText { get; set; } = "";
+    private ElementReference TextAreaRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("autoResizeTextarea", TextAreaRef);
+        }
+    }
+
+    private async Task HandleSendMessage()
+    {
+        if (!string.IsNullOrWhiteSpace(MessageText) && !IsDisabled)
+        {
+            await OnSendMessage.InvokeAsync(MessageText);
+            MessageText = "";
+            StateHasChanged();
+
+            // Reset the textarea height
+            await Task.Delay(10);
+            await JS.InvokeVoidAsync("autoResizeTextarea", TextAreaRef);
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey && !IsDisabled)
+        {
+           
+            //e.preventDefault();
+            await HandleSendMessage();
+        }
+        else
+        {
+            // Auto-resize textarea as user types
+            await JS.InvokeVoidAsync("autoResizeTextarea", TextAreaRef);
+        }
+    }
+
+    private async Task HandleToggleWebSearch()
+    {
+        if (!IsDisabled)
+        {
+            await OnToggleWebSearch.InvokeAsync();
+        }
+    }
+
+    private async Task HandleToggleDeepThinking()
+    {
+        if (!IsDisabled)
+        {
+            await OnToggleDeepThinking.InvokeAsync();
+        }
+    }
+
+    private async Task HandleFileUpload()
+    {
+        if (IsDisabled)
+            return;
+
+        try
+        {
+            var fileData = await JS.InvokeAsync<object>("uploadFile", "");
+
+            if (fileData != null)
+            {
+                // In a real implementation, you would handle the uploaded file
+                // For now, we'll just add its name to the message text
+                // var fileName = fileData.GetProperty("fileName").GetString();
+                // MessageText += $" [Attached file: {fileName}]";
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error uploading file: {ex.Message}");
+        }
+    }
+}

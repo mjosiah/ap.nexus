@@ -1,0 +1,87 @@
+﻿@using Microsoft.SemanticKernel
+@using Microsoft.SemanticKernel.ChatCompletion
+@inject IJSRuntime JS
+
+<div class="message-content">
+    @foreach (var item in ContentItems)
+    {
+       
+        @if (item is TextContent textContent)
+        {
+            <div class="text-content">
+                @((MarkupString)FormatTextContent(textContent.Text))
+            </div>
+        }
+        else if (item is ImageContent imageContent)
+        {
+            <div class="image-content mt-2 mb-2">
+                <img src="@imageContent.Uri" alt="Image" class="img-fluid rounded" style="max-width: 100%;" />
+            </div>
+        }
+        else
+        {
+            <div class="unknown-content text-muted fst-italic">
+                Unsupported content type
+            </div>
+        }
+    }
+
+    @if (ContentItems.Count == 0 && !string.IsNullOrEmpty(FallbackText))
+    {
+        <div class="text-content">
+            @((MarkupString)FormatTextContent(FallbackText))
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public ChatMessageContentItemCollection ContentItems { get; set; } = new();
+
+    [Parameter]
+    public string FallbackText { get; set; }
+
+    [Parameter]
+    public bool EnableFormatting { get; set; } = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize syntax highlighting or other formatting
+            await JS.InvokeVoidAsync("formatCodeBlocks");
+        }
+    }
+
+    private string FormatTextContent(string content)
+    {
+        if (string.IsNullOrEmpty(content))
+            return string.Empty;
+
+        if (!EnableFormatting)
+            return content.Replace("\n", "<br>");
+
+        // Replace line breaks with <br> tags
+        var formatted = content.Replace("\n", "<br>");
+
+        // Format code blocks
+        formatted = FormatCodeBlocks(formatted);
+
+        return formatted;
+    }
+
+    private string FormatCodeBlocks(string content)
+    {
+        // Simple regex to find code blocks with language specifier
+        // This is a basic implementation - a production version would use a more robust solution
+        var regex = new System.Text.RegularExpressions.Regex(@"```(\w+)?\s*([\s\S]*?)```");
+
+        return regex.Replace(content, match =>
+        {
+            var language = match.Groups[1].Success ? match.Groups[1].Value : "plaintext";
+            var code = match.Groups[2].Value;
+
+            return $"<pre><code class=\"language-{language}\">{System.Web.HttpUtility.HtmlEncode(code)}</code></pre>";
+        });
+    }
+}

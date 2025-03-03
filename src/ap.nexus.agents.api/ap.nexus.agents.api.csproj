@@ -14,11 +14,12 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.37.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.37.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.40.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ap.nexus.abstractions\ap.nexus.abstractions.csproj" />
+    <ProjectReference Include="..\ap.nexus.agents.api.contracts\ap.nexus.agents.api.contracts.csproj" />
     <ProjectReference Include="..\ap.nexus.agents.application\ap.nexus.agents.application.csproj" />
   </ItemGroup>
 
