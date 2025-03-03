@@ -19,11 +19,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ap.nexus.agents.unittests",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ap.nexus.agents.IntegrationTests", "ap.nexus.agents.IntegrationTests\ap.nexus.agents.IntegrationTests.csproj", "{F15BEDAE-AD75-498D-821C-8E187DD4668A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ap.nexus.core", "ap.nexus.core\ap.nexus.core.csproj", "{AE80B1CA-2B80-4999-B1AE-F3A7AE6A3DE0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ap.nexus.core", "ap.nexus.core\ap.nexus.core.csproj", "{AE80B1CA-2B80-4999-B1AE-F3A7AE6A3DE0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ap.nexus.settingmanager", "ap.nexus.settingmanager\ap.nexus.settingmanager.csproj", "{91D7630E-685C-4C21-9825-E848EF59F82E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ap.nexus.settingmanager", "ap.nexus.settingmanager\ap.nexus.settingmanager.csproj", "{91D7630E-685C-4C21-9825-E848EF59F82E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{E8D57303-D9E9-4C78-9227-16014CD4ED6C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ap.nexus.agents.website", "ap.nexus.agents.website\ap.nexus.agents.website.csproj", "{936B4DF3-A844-4E95-99CB-C4AE7CE94CDC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -67,6 +69,10 @@ Global
 		{91D7630E-685C-4C21-9825-E848EF59F82E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{91D7630E-685C-4C21-9825-E848EF59F82E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{91D7630E-685C-4C21-9825-E848EF59F82E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{936B4DF3-A844-4E95-99CB-C4AE7CE94CDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{936B4DF3-A844-4E95-99CB-C4AE7CE94CDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{936B4DF3-A844-4E95-99CB-C4AE7CE94CDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{936B4DF3-A844-4E95-99CB-C4AE7CE94CDC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
