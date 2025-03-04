@@ -1,44 +1,46 @@
 ﻿@inject IJSRuntime JS
 
 <div class="message-input bg-dark border-top border-secondary p-3">
-    <div class="input-group position-relative bg-dark-subtle rounded">
-        <div class="d-flex position-absolute start-0 ps-3 top-50 translate-middle-y">
-            <button class="btn btn-link text-secondary"
+    <div class="input-wrapper position-relative bg-dark-secondary rounded">
+        <!-- Buttons container - now vertically centered -->
+        <div class="input-icons d-flex position-absolute start-0 ps-3 top-50 translate-middle-y gap-3">
+            <button class="icon-btn"
                     title="Attach files"
                     @onclick="HandleFileUpload"
                     disabled="@IsDisabled">
-                <i class="bi bi-paperclip"></i>
+                <i class="bi bi-paperclip @(IsDisabled ? "text-muted" : "text-secondary")"></i>
             </button>
 
-            <button class="btn btn-link @(WebSearchActive ? "text-primary" : "text-secondary")"
+            <button class="icon-btn @(WebSearchActive ? "active" : "")"
                     title="Web Search"
                     @onclick="HandleToggleWebSearch"
                     disabled="@IsDisabled">
-                <i class="bi bi-globe"></i>
+                <i class="bi bi-globe @(IsDisabled ? "text-muted" : WebSearchActive ? "text-primary" : "text-secondary")"></i>
             </button>
 
-            <button class="btn btn-link @(DeepThinkingActive ? "text-primary" : "text-secondary")"
+            <button class="icon-btn @(DeepThinkingActive ? "active" : "")"
                     title="Deep Thinking"
                     @onclick="HandleToggleDeepThinking"
                     disabled="@IsDisabled">
-                <i class="bi bi-lightning"></i>
+                <i class="bi bi-lightning @(IsDisabled ? "text-muted" : DeepThinkingActive ? "text-primary" : "text-secondary")"></i>
             </button>
         </div>
 
+        <!-- Textarea with proper padding to make room for buttons -->
         <textarea @bind="MessageText"
                   @bind:event="oninput"
                   @onkeydown="HandleKeyDown"
                   @ref="TextAreaRef"
-                  class="form-control border-0 py-3 ps-5 pe-5 bg-dark-subtle text-light"
+                  class="input-field border-0 w-100 bg-dark-secondary text-light"
                   placeholder="@Placeholder"
-                  style="resize: none; min-height: 60px;"
-                  disabled="@IsDisabled"
-                  rows="1"></textarea>
+                  style="min-height: 60px; padding: 20px 50px 20px 150px; resize: none; outline: none;"
+                  disabled="@IsDisabled"></textarea>
 
-        <button class="btn btn-link text-secondary position-absolute end-0 pe-3 top-50 translate-middle-y"
+        <!-- Send button - vertically centered -->
+        <button class="send-button position-absolute end-0 top-50 translate-middle-y pe-3 bg-transparent border-0"
                 @onclick="HandleSendMessage"
                 disabled="@(IsDisabled || string.IsNullOrWhiteSpace(MessageText))">
-            <i class="bi bi-send-fill @(string.IsNullOrWhiteSpace(MessageText) ? "text-muted" : "text-primary")"></i>
+            <i class="bi bi-send-fill @(IsDisabled || string.IsNullOrWhiteSpace(MessageText) ? "text-muted" : "text-primary")"></i>
         </button>
     </div>
 </div>
@@ -80,13 +82,16 @@
     {
         if (!string.IsNullOrWhiteSpace(MessageText) && !IsDisabled)
         {
-            await OnSendMessage.InvokeAsync(MessageText);
+            string textToSend = MessageText;
             MessageText = "";
             StateHasChanged();
 
             // Reset the textarea height
             await Task.Delay(10);
             await JS.InvokeVoidAsync("autoResizeTextarea", TextAreaRef);
+
+            // Invoke the callback with the saved message
+            await OnSendMessage.InvokeAsync(textToSend);
         }
     }
 
@@ -94,8 +99,7 @@
     {
         if (e.Key == "Enter" && !e.ShiftKey && !IsDisabled)
         {
-           
-            //e.preventDefault();
+            //e.PreventDefault();
             await HandleSendMessage();
         }
         else
@@ -136,7 +140,7 @@
                 // For now, we'll just add its name to the message text
                 // var fileName = fileData.GetProperty("fileName").GetString();
                 // MessageText += $" [Attached file: {fileName}]";
-                StateHasChanged();
+                // StateHasChanged();
             }
         }
         catch (Exception ex)

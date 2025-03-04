@@ -1,0 +1,133 @@
+﻿@using ap.nexus.agents.website.Services
+@inject StateContainer StateContainer
+@inject IJSRuntime JS
+
+<div class="agent-selector position-relative">
+    <!-- Selector button with selected agent info -->
+    <button @onclick="ToggleDropdown"
+            class="agent-selector-btn d-flex align-items-center bg-dark-secondary border-0 rounded py-1 px-3"
+            type="button">
+        @if (SelectedAgent != null)
+        {
+            <!-- Selected agent display -->
+            <div class="d-flex align-items-center">
+                @if (!string.IsNullOrEmpty(SelectedAgent.AvatarUrl))
+                {
+                    <img src="@SelectedAgent.AvatarUrl" alt="@SelectedAgent.Name" class="agent-avatar rounded-circle me-2" />
+                }
+                else
+                {
+                    <div class="agent-avatar bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-robot text-white"></i>
+                    </div>
+                }
+                <span class="agent-name text-light">@SelectedAgent.Name</span>
+            </div>
+        }
+        else
+        {
+            <!-- Default display when no agent is selected -->
+            <div class="d-flex align-items-center">
+                <div class="agent-avatar bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-robot text-white"></i>
+                </div>
+                <span class="agent-name text-light">Select an Agent</span>
+            </div>
+        }
+        <i class="bi bi-chevron-down ms-2 text-secondary"></i>
+    </button>
+
+    <!-- Dropdown menu -->
+    @if (_isOpen)
+    {
+        <div class="agent-dropdown bg-dark-secondary border border-dark-border rounded mt-2 position-absolute start-0 shadow-lg" style="z-index: 1000; width: 300px;">
+            <div class="dropdown-header border-bottom border-dark-border p-2">
+                <span class="text-light">Available Agents</span>
+            </div>
+            <div class="agent-list py-1" style="max-height: 300px; overflow-y: auto;">
+                @foreach (var agent in Agents.Where(a => a.IsActive))
+                {
+                    <div class="agent-item p-2 @(agent.Id == SelectedAgentId ? "bg-dark-hover" : "")"
+                         @onclick="() => SelectAgent(agent.Id)">
+                        <div class="d-flex">
+                            @if (!string.IsNullOrEmpty(agent.AvatarUrl))
+                            {
+                                <img src="@agent.AvatarUrl" alt="@agent.Name" class="agent-avatar rounded-circle me-2" />
+                            }
+                            else
+                            {
+                                <div class="agent-avatar bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-robot text-white"></i>
+                                </div>
+                            }
+                            <div>
+                                <div class="agent-name text-light">@agent.Name</div>
+                                <div class="agent-description small text-secondary">@agent.Description</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<AgentDto> Agents { get; set; } = new();
+
+    [Parameter]
+    public Guid SelectedAgentId { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnAgentSelected { get; set; }
+
+    private bool _isOpen = false;
+
+    public AgentDto SelectedAgent => Agents.FirstOrDefault(a => a.Id == SelectedAgentId);
+
+    protected override void OnInitialized()
+    {
+        // If no agents available, use what's in the state container
+        if (!Agents.Any())
+        {
+            Agents = StateContainer.AvailableAgents;
+        }
+
+        // If no selected agent but there are agents, select the first one
+        if (SelectedAgentId == Guid.Empty && Agents.Any())
+        {
+            SelectedAgentId = Agents.First().Id;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Register a global click handler to close the dropdown when clicking outside
+            await JS.InvokeVoidAsync("registerDropdownOutsideClickHandler", "agent-selector");
+        }
+    }
+
+    private void ToggleDropdown()
+    {
+        _isOpen = !_isOpen;
+    }
+
+    private async Task SelectAgent(Guid agentId)
+    {
+        SelectedAgentId = agentId;
+        _isOpen = false;
+        await OnAgentSelected.InvokeAsync(agentId);
+    }
+
+    public void CloseDropdown()
+    {
+        if (_isOpen)
+        {
+            _isOpen = false;
+            StateHasChanged();
+        }
+    }
+}

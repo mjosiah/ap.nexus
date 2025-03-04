@@ -55,7 +55,8 @@
 
     private async Task ScrollToBottom()
     {
-        await JS.InvokeVoidAsync("scrollToBottom", _messagesContainer);
+        // Use string selector instead of element reference to avoid JS error
+        await JS.InvokeVoidAsync("scrollToBottom", ".messages-container");
     }
 
     private string FormatMessage(string content)

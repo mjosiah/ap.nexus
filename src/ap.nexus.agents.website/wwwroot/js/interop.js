@@ -5,6 +5,34 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeBootstrapComponents();
 });
 
+window.addEventListener('resize', function () {
+    const activeTextarea = document.querySelector('.input-field');
+    if (activeTextarea) {
+        window.autoResizeTextarea(activeTextarea);
+    }
+});
+
+// Register a handler to close dropdowns when clicking outside
+window.registerDropdownOutsideClickHandler = function (componentSelector) {
+    document.addEventListener('click', function (event) {
+        // Find the component instance
+        const dropdownComponent = document.querySelector('.' + componentSelector);
+
+        // If we clicked outside the dropdown
+        if (dropdownComponent && !dropdownComponent.contains(event.target)) {
+            // Find the Blazor component instance
+            const componentInstance = dropdownComponent.closest('[__internal_dotnetref_id]');
+            if (componentInstance) {
+                // Get the .NET reference and call the close method
+                const dotNetRef = Blazor.getInstance(componentInstance);
+                if (dotNetRef) {
+                    dotNetRef.invokeMethodAsync('CloseDropdown');
+                }
+            }
+        }
+    });
+}
+
 // Function to initialize Bootstrap components
 function initializeBootstrapComponents() {
     // Initialize all tooltips
@@ -22,24 +50,40 @@ function initializeBootstrapComponents() {
 
 // Function to scroll an element to the bottom (used for message container)
 window.scrollToBottom = function (element) {
-    if (element) {
-        element.scrollTop = element.scrollHeight;
+    let container;
+
+    // Check if element is a string (CSS selector)
+    if (typeof element === 'string') {
+        container = document.querySelector(element);
+    }
+    // If it's a direct reference to an element
+    else if (element && element.tagName) {
+        container = element;
+    }
+
+    if (container) {
+        container.scrollTop = container.scrollHeight;
     }
 };
 
 // Function to auto-resize a textarea based on content
 window.autoResizeTextarea = function (textarea) {
-    if (textarea) {
-        // Reset height to calculate correct scrollHeight
-        textarea.style.height = 'auto';
+    if (!textarea) return;
 
-        // Set the height to scrollHeight with min/max constraints
-        const newHeight = Math.max(60, Math.min(textarea.scrollHeight, 200));
-        textarea.style.height = newHeight + 'px';
+    // Reset height to calculate correct scrollHeight
+    textarea.style.height = 'auto';
 
-        return newHeight;
+    // Set the height to scrollHeight with min height constraint
+    const newHeight = Math.max(60, Math.min(textarea.scrollHeight, 200));
+    textarea.style.height = newHeight + 'px';
+
+    // Make sure the parent container adjusts as well
+    const wrapper = textarea.closest('.input-wrapper');
+    if (wrapper) {
+        wrapper.style.height = newHeight + 'px';
     }
-    return 60; // Default height
+
+    return newHeight;
 };
 
 // Function to focus an input element and select its content

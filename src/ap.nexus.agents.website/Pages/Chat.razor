@@ -1,6 +1,7 @@
 ﻿@page "/"
 @page "/chat"
 @page "/chat/{ThreadId}"
+
 @using Microsoft.SemanticKernel.ChatCompletion
 @using ap.nexus.agents.website.Components
 @using ap.nexus.agents.website.Services
@@ -11,53 +12,31 @@
 
 <PageTitle>@_pageTitle</PageTitle>
 
-<div class="d-flex flex-column h-100">
-    <!-- Agent Selection -->
-    @if (!_threadId.HasValue)
-    {
-        <div class="agent-selector p-3 mb-3">
-            <div class="card bg-dark-secondary">
-                <div class="card-header">
-                    <h5 class="mb-0">Select an Agent to Chat With</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        @foreach (var agent in StateContainer.AvailableAgents.Where(a => a.IsActive))
-                        {
-                            <div class="col-md-4 mb-3">
-                                <div class="agent-card card h-100 @(StateContainer.CurrentAgentId == agent.Id ? "border-primary" : "border-secondary")"
-                                     @onclick="() => SelectAgent(agent.Id)">
-                                    <div class="card-body text-center">
-                                        @if (!string.IsNullOrEmpty(agent.AvatarUrl))
-                                        {
-                                            <img src="@agent.AvatarUrl" alt="@agent.Name" class="avatar rounded-circle mb-3" style="width: 64px; height: 64px;" />
-                                        }
-                                        else
-                                        {
-                                            <div class="avatar bg-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px;">
-                                                <i class="bi bi-robot fs-3 text-white"></i>
-                                            </div>
-                                        }
-                                        <h5>@agent.Name</h5>
-                                        <p class="text-muted small">@agent.Description</p>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
+<div class="chat-container d-flex flex-column h-100">
+    <!-- Web Search and Deep Thinking buttons moved to input area -->
+    <div class="flex-grow-1 overflow-auto">
+        <MessageList Messages="@_messages" />
+    </div>
+
+    <div class="message-controls mt-auto">
+        <div class="feature-toggles d-flex justify-content-end mb-2">
+            <button class="btn btn-sm @(StateContainer.IsWebSearchEnabled ? "btn-primary" : "btn-outline-secondary") me-2" 
+                    @onclick="ToggleWebSearch">
+                <i class="bi bi-globe me-1"></i> Web Search
+            </button>
+            <button class="btn btn-sm @(StateContainer.IsDeepThinkingEnabled ? "btn-primary" : "btn-outline-secondary")" 
+                    @onclick="ToggleDeepThinking">
+                <i class="bi bi-lightning me-1"></i> Deep Thinking
+            </button>
         </div>
-    }
-
-    <MessageList Messages="@_messages" />
-
-    <MessageInput OnSendMessage="SendMessage" 
-                  WebSearchActive="@StateContainer.IsWebSearchEnabled"
-                  DeepThinkingActive="@StateContainer.IsDeepThinkingEnabled"
-                  OnToggleWebSearch="ToggleWebSearch" 
-                  OnToggleDeepThinking="ToggleDeepThinking"
-                  IsDisabled="@_isMessageInputDisabled" />
+        
+        <MessageInput OnSendMessage="SendMessage" 
+                    WebSearchActive="@StateContainer.IsWebSearchEnabled"
+                    DeepThinkingActive="@StateContainer.IsDeepThinkingEnabled"
+                    OnToggleWebSearch="ToggleWebSearch" 
+                    OnToggleDeepThinking="ToggleDeepThinking"
+                    IsDisabled="@_isMessageInputDisabled" />
+    </div>
 </div>
 
 @code {
@@ -105,6 +84,12 @@
                     IsActive = true
                 }
             };
+            
+            // Auto-select the first agent
+            if (StateContainer.AvailableAgents.Any())
+            {
+                StateContainer.CurrentAgentId = StateContainer.AvailableAgents.First().Id;
+            }
         }
         
         await base.OnInitializedAsync();
@@ -194,9 +179,21 @@
     private async Task SendMessage(string content)
     {
         if (string.IsNullOrWhiteSpace(content)) return;
-        if (StateContainer.CurrentAgentId == Guid.Empty && !_threadId.HasValue)
+        
+        // Verify that an agent is selected
+        if (StateContainer.CurrentAgentId == Guid.Empty)
         {
-            // No agent selected yet
+            // No agent selected, show a message to select one
+            var warningMessage = new MessageList.MessageModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                Content = "Please select an agent from the dropdown at the top of the screen before sending a message.",
+                IsFromUser = false,
+                Timestamp = DateTime.Now
+            };
+            
+            _messages.Add(warningMessage);
+            await ScrollToBottomAsync();
             return;
         }
         
@@ -274,11 +271,6 @@
     private void OnFeatureFlagsChanged()
     {
         StateHasChanged();
-    }
-    
-    private void SelectAgent(Guid agentId)
-    {
-        StateContainer.CurrentAgentId = agentId;
     }
     
     private void ToggleWebSearch()

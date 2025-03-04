@@ -1,10 +1,16 @@
 ﻿@using ap.nexus.agents.website.Components
+@using ap.nexus.agents.website.Services
 @inherits LayoutComponentBase
+@inject StateContainer StateContainer
+@inject NavigationManager Navigation
 
 <div class="app-container d-flex flex-column vh-100 bg-dark text-light">
     <ChatHeader ChatTitle="@_currentChat?.Title" 
                 ChatTitleChanged="UpdateChatTitle"
-                OnToggleSidebar="ToggleSidebar" />
+                OnToggleSidebar="ToggleSidebar"
+                OnNewChat="HandleNewChat"
+                OnExportChat="HandleExportChat"
+                OnDeleteChat="HandleDeleteChat" />
     
     <div class="d-flex flex-grow-1 position-relative">
         <ChatSidebar IsCollapsed="@_sidebarCollapsed"
@@ -12,19 +18,9 @@
                     ActiveChatId="@_currentChatId"
                     OnChatSelected="SelectChat" />
         
-        <div class="@(_sidebarCollapsed ? "col-12" : "col-md-9 col-lg-10 offset-md-3 offset-lg-2") d-flex flex-column" 
-             style="height: calc(100vh - 56px);">
-             
-            <div class="action-buttons d-flex p-2 border-bottom border-secondary">
-                <button class="btn @(_webSearchActive ? "btn-primary" : "btn-outline-secondary") me-2" 
-                        @onclick="ToggleWebSearch">
-                    Web Search
-                </button>
-                <button class="btn @(_deepThinkingActive ? "btn-primary" : "btn-outline-secondary")" 
-                        @onclick="ToggleDeepThinking">
-                    Deep Thinking
-                </button>
-            </div>
+        <div class="@(_sidebarCollapsed ? "col-12" : "col-md-9 col-lg-10 offset-md-3 offset-lg-2") d-flex flex-column h-100" 
+             style="transition: margin-left 0.3s ease;">
+            @* Remove the action buttons section *@
             
             @* This is where page content will be rendered *@
             @Body
@@ -62,24 +58,36 @@
     
     private ChatSidebar.ChatInfo _currentChat => _chatHistory.FirstOrDefault(c => c.Id == _currentChatId);
     
+    protected override void OnInitialized()
+    {
+        // Initialize web search and deep thinking states from state container
+        _webSearchActive = StateContainer.IsWebSearchEnabled;
+        _deepThinkingActive = StateContainer.IsDeepThinkingEnabled;
+    }
+    
     private void ToggleSidebar()
     {
         _sidebarCollapsed = !_sidebarCollapsed;
+        StateContainer.IsSidebarCollapsed = _sidebarCollapsed;
     }
     
     private void ToggleWebSearch()
     {
         _webSearchActive = !_webSearchActive;
+        StateContainer.IsWebSearchEnabled = _webSearchActive;
     }
     
     private void ToggleDeepThinking()
     {
         _deepThinkingActive = !_deepThinkingActive;
+        StateContainer.IsDeepThinkingEnabled = _deepThinkingActive;
     }
     
     private void SelectChat(string chatId)
     {
         _currentChatId = chatId;
+        // Navigate to the selected chat
+        Navigation.NavigateTo($"/chat/{chatId}");
     }
     
     private void UpdateChatTitle(string newTitle)
@@ -89,5 +97,25 @@
         {
             chat.Title = newTitle;
         }
+    }
+    
+    private void HandleNewChat()
+    {
+        // Navigate to the root to start a new chat
+        Navigation.NavigateTo("/");
+    }
+    
+    private void HandleExportChat()
+    {
+        // This would be implemented to export the current chat
+        Console.WriteLine("Export chat requested");
+    }
+    
+    private void HandleDeleteChat()
+    {
+        // This would be implemented to delete the current chat
+        Console.WriteLine("Delete chat requested");
+        // Navigate to the root after deletion
+        Navigation.NavigateTo("/");
     }
 }
