@@ -4,6 +4,7 @@
 
 @using Microsoft.SemanticKernel.ChatCompletion
 @using ap.nexus.agents.website.Components
+@using ap.nexus.agents.website.Models
 @using ap.nexus.agents.website.Services
 @inject StateContainer StateContainer
 @inject IChatService ChatService
@@ -135,13 +136,18 @@
     private void UpdateMessages()
     {
         var threadId = _threadId ?? StateContainer.CurrentChatSessionId;
+
+        // Get messages for current thread, or any system messages if we don't have a thread
+        List<MessageDto> stateMessages;
         if (threadId == Guid.Empty)
         {
-            _messages.Clear();
-            return;
+            // Get any system messages that might not be associated with a thread
+            stateMessages = StateContainer.GetMessagesForChat(Guid.Empty);
         }
-
-        var stateMessages = StateContainer.GetMessagesForChat(threadId);
+        else
+        {
+            stateMessages = StateContainer.GetMessagesForChat(threadId);
+        }
 
         _messages = stateMessages.Select(m => new MessageList.MessageModel
             {
@@ -257,7 +263,7 @@
     private void OnMessagesChanged(Guid chatId)
     {
         var threadId = _threadId ?? StateContainer.CurrentChatSessionId;
-        if (chatId == threadId)
+        if (chatId == threadId || threadId == Guid.Empty)
         {
             UpdateMessages();
         }
