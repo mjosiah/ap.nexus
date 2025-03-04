@@ -271,6 +271,56 @@ namespace ap.nexus.agents.website.Services
                 _stateContainer.NotifyChatSessionsChanged();
             }
         }
+
+        /// <summary>
+        /// Get available agents from the API
+        /// </summary>
+        public async Task<List<AgentDto>> GetAvailableAgentsAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Retrieving available agents");
+
+                // Create request with default paging
+                var request = new PagedAndSortedResultRequestDto
+                {
+                    MaxResultCount = 50,
+                    SkipCount = 0,
+                    Sorting = "Name" // Sort by name
+                };
+
+                // Call API
+                var response = await _chatApiClient.GetAgentsAsync(request);
+
+                // Convert API agents to our AgentDto model
+                var agents = response.Items.Select(a => new AgentDto
+                {
+                    Id = a.Id,
+                    Name = a.Name,
+                    Description = a.Description,
+                    Instruction = a.Instruction,
+                    IsActive = a.IsActive,
+                    AvatarUrl = a.AvatarUrl
+                }).ToList();
+
+                // Store in state
+                _stateContainer.AvailableAgents = agents;
+
+                return agents;
+            }
+            catch (Refit.ApiException apiEx)
+            {
+                _logger.LogError(apiEx, "API error retrieving agents. Status: {Status}, Content: {Content}",
+                    apiEx.StatusCode, apiEx.Content);
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving agents");
+                throw;
+            }
+        }
     }
 
 
@@ -281,6 +331,7 @@ namespace ap.nexus.agents.website.Services
     {
         Task<MessageDto> SendMessageAsync(Guid agentId, string content, Guid? threadId = null);
         Task<List<MessageDto>> GetMessageHistoryAsync(Guid threadId);
+        Task<List<AgentDto>> GetAvailableAgentsAsync();
     }
 
     public class ApiErrorDto
