@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ap.nexus.abstractions\ap.nexus.abstractions.csproj" />
     <ProjectReference Include="..\ap.nexus.agents.api.contracts\ap.nexus.agents.api.contracts.csproj" />
   </ItemGroup>
 
