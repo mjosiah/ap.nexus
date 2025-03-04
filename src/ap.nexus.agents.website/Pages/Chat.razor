@@ -140,19 +140,20 @@
             _messages.Clear();
             return;
         }
-        
+
         var stateMessages = StateContainer.GetMessagesForChat(threadId);
-        
+
         _messages = stateMessages.Select(m => new MessageList.MessageModel
-        {
-            Id = m.Id.ToString(),
-            Content = m.TextContent,
-            IsFromUser = m.IsFromUser,
-            Timestamp = m.Timestamp
-        }).ToList();
-        
+            {
+                Id = m.Id.ToString(),
+                Content = m.TextContent,
+                IsFromUser = m.IsFromUser,
+                Timestamp = m.Timestamp,
+                Role = m.Role  // Make sure to include the Role property
+            }).ToList();
+
         StateHasChanged();
-        
+
         // Scroll to bottom after update
         _ = ScrollToBottomAsync();
     }

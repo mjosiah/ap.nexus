@@ -8,18 +8,29 @@
             <div class="d-flex @(message.IsFromUser ? "justify-content-end" : "")">
                 @if (!message.IsFromUser)
                 {
-                    <div class="avatar bg-primary rounded d-flex align-items-center justify-content-center me-2"
-                         style="width: 40px; height: 40px;">
-                        <i class="bi bi-robot text-white"></i>
-                    </div>
+                    @if (message.Role == AuthorRole.System.Label)
+                    {
+                        <div class="avatar system-avatar rounded d-flex align-items-center justify-content-center me-2"
+                             style="width: 40px; height: 40px;">
+                            <i class="bi bi-exclamation-triangle text-white"></i>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="avatar bg-primary rounded d-flex align-items-center justify-content-center me-2"
+                             style="width: 40px; height: 40px;">
+                            <i class="bi bi-robot text-white"></i>
+                        </div>
+                    }
                 }
 
-                <div class="@(message.IsFromUser
-                               ? "bg-secondary text-white rounded-3 p-3 mw-75"
-                               : "bg-primary text-white rounded-3 p-3 mw-75")">
-                    @if (message.ContentItems != null && message.ContentItems.Any())
+                <div class="@GetMessageClass(message)">
+                    @if (message.Role == AuthorRole.System.Label)
                     {
-                        <MessageContentDisplay ContentItems="message.ContentItems" FallbackText="message.Content" />
+                        <div>
+                            <i class="bi bi-exclamation-triangle message-error-icon"></i>
+                            @((MarkupString)FormatMessage(message.Content))
+                        </div>
                     }
                     else
                     {
@@ -55,8 +66,23 @@
 
     private async Task ScrollToBottom()
     {
-        // Use string selector instead of element reference to avoid JS error
         await JS.InvokeVoidAsync("scrollToBottom", ".messages-container");
+    }
+
+    private string GetMessageClass(MessageModel message)
+    {
+        if (message.IsFromUser)
+        {
+            return "bg-secondary text-white rounded-3 p-3 mw-75";
+        }
+        else if (message.Role == AuthorRole.System.Label)
+        {
+            return "message-error rounded-3 p-3 mw-75";
+        }
+        else
+        {
+            return "bg-primary text-white rounded-3 p-3 mw-75";
+        }
     }
 
     private string FormatMessage(string content)
@@ -76,7 +102,6 @@
     private string FormatCodeBlocks(string content)
     {
         // Simple regex to find code blocks with language specifier
-        // This is a basic implementation - a production version would use a more robust solution
         var regex = new System.Text.RegularExpressions.Regex(@"```(\w+)?\s*([\s\S]*?)```");
 
         return regex.Replace(content, match =>
@@ -88,7 +113,6 @@
         });
     }
 
-    // Public method that can be called from parent components
     public async Task ScrollToBottomAsync()
     {
         await ScrollToBottom();
@@ -100,8 +124,6 @@
         public string Content { get; set; } = "";
         public bool IsFromUser { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.Now;
-
-        // Support for Semantic Kernel's content items
-        public ChatMessageContentItemCollection ContentItems { get; set; } = new();
+        public string Role { get; set; } = AuthorRole.User.Label;
     }
 }

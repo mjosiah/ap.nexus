@@ -12,7 +12,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
 // Register Refit client for the Chat API
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? builder.HostEnvironment.BaseAddress ?? "http://localhost:5197";
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"]  ?? "http://localhost:5197";
 builder.Services
     .AddRefitClient<IChatApiClient>()
     .ConfigureHttpClient(c => c.BaseAddress = new Uri(apiBaseUrl));

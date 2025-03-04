@@ -9,75 +9,37 @@ namespace ap.nexus.agents.website.Models
     /// </summary>
     public class MessageDto
     {
-        /// <summary>
-        /// Unique identifier for the message
-        /// </summary>
         public Guid Id { get; set; }
-
-        /// <summary>
-        /// ID of the chat session this message belongs to
-        /// </summary>
         public Guid ChatSessionId { get; set; }
-
-        /// <summary>
-        /// Role of the message author (User, Assistant, System)
-        /// </summary>
-        public AuthorRole Role { get; set; }
-
-        /// <summary>
-        /// Name of the sender
-        /// </summary>
+        public string Role { get; set; }  // Added to store AuthorRole.System for errors
         public string SenderName { get; set; }
-
-        /// <summary>
-        /// When the message was sent
-        /// </summary>
         public DateTime Timestamp { get; set; }
-
-        /// <summary>
-        /// Collection of content items in this message
-        /// </summary>
         public List<MessageContentItem> Items { get; set; } = new();
 
         /// <summary>
-        /// Convenience property to check if the message is from the user
+        /// Gets if the message is from the user
         /// </summary>
-        [JsonIgnore]
-        public bool IsFromUser => Role == AuthorRole.User;
+        public bool IsFromUser => Role == AuthorRole.User.Label;
 
         /// <summary>
-        /// Convenience property to get the text content of the message
+        /// Gets if the message is a system message (like an error)
         /// </summary>
-        [JsonIgnore]
-        public string TextContent => string.Join("\n",
-            Items.Where(i => i.ItemType == ContentItemType.Text)
-                 .Select(i => i.Content));
+        public bool IsSystemMessage => Role == AuthorRole.System.Label;
 
         /// <summary>
-        /// Creates a simple text message
+        /// Gets the text content of all text items in this message
         /// </summary>
-        public static MessageDto CreateTextMessage(
-            Guid chatSessionId,
-            string content,
-            AuthorRole role,
-            string senderName = null)
+        public string TextContent
         {
-            return new MessageDto
+            get
             {
-                Id = Guid.NewGuid(),
-                ChatSessionId = chatSessionId,
-                Role = role,
-                SenderName = senderName ?? role.ToString(),
-                Timestamp = DateTime.UtcNow,
-                Items = new List<MessageContentItem>
-            {
-                new MessageContentItem
-                {
-                    ItemType = ContentItemType.Text,
-                    Content = content
-                }
+                if (Items == null || !Items.Any())
+                    return string.Empty;
+
+                return string.Join("\n", Items
+                    .Where(i => i.ItemType == ContentItemType.Text)
+                    .Select(i => i.Content));
             }
-            };
         }
     }
 

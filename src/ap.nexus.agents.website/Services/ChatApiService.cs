@@ -3,6 +3,7 @@ using ap.nexus.agents.apiclient;
 using ap.nexus.agents.website.Models;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using System.Text.Json;
 
 namespace ap.nexus.agents.website.Services
 {
@@ -18,11 +19,11 @@ namespace ap.nexus.agents.website.Services
         private readonly ILogger<ChatApiService> _logger;
 
         public ChatApiService(
-            IChatApiClient chatApiClient,
+            IChatApiClient _chatApiClient,
             StateContainer stateContainer,
             ILogger<ChatApiService> logger)
         {
-            _chatApiClient = chatApiClient;
+            this._chatApiClient = _chatApiClient;
             _stateContainer = stateContainer;
             _logger = logger;
         }
@@ -56,7 +57,7 @@ namespace ap.nexus.agents.website.Services
                 {
                     Id = Guid.NewGuid(),
                     ChatSessionId = response.ThreadId,
-                    Role = AuthorRole.User,
+                    Role = AuthorRole.User.Label,
                     SenderName = "User",
                     Timestamp = DateTime.UtcNow,
                     Items = new List<MessageContentItem>
@@ -81,10 +82,94 @@ namespace ap.nexus.agents.website.Services
 
                 return responseDto;
             }
+            catch (Refit.ApiException apiEx)
+            {
+                _logger.LogError(apiEx, "API error sending message to chat API");
+
+                // Try to parse the error response
+                var errorDto = await ParseErrorResponseAsync(apiEx);
+
+                // Create an error message with the reason from the API
+                var errorMessage = new MessageDto
+                {
+                    Id = Guid.NewGuid(),
+                    ChatSessionId = threadId ?? Guid.Empty,
+                    Role = AuthorRole.System.Label,
+                    SenderName = "System",
+                    Timestamp = DateTime.UtcNow,
+                    Items = new List<MessageContentItem>
+                {
+                    new MessageContentItem
+                    {
+                        ItemType = ContentItemType.Text,
+                        Content = $"Error: {errorDto.Reason ?? apiEx.Message}"
+                    }
+                }
+                };
+
+                // Store the error message in state
+                _stateContainer.AddMessage(errorMessage);
+
+                return errorMessage;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending message to chat API");
-                throw;
+
+                // Create generic error message
+                var errorMessage = new MessageDto
+                {
+                    Id = Guid.NewGuid(),
+                    ChatSessionId = threadId ?? Guid.Empty,
+                    Role = AuthorRole.System.Label,
+                    SenderName = "System",
+                    Timestamp = DateTime.UtcNow,
+                    Items = new List<MessageContentItem>
+                {
+                    new MessageContentItem
+                    {
+                        ItemType = ContentItemType.Text,
+                        Content = $"Error sending message: {ex.Message}"
+                    }
+                }
+                };
+
+                // Store the error message in state
+                _stateContainer.AddMessage(errorMessage);
+
+                return errorMessage;
+            }
+        }
+
+        /// <summary>
+        /// Parse the API error response into an ApiErrorDto
+        /// </summary>
+        private async Task<ApiErrorDto> ParseErrorResponseAsync(Refit.ApiException apiException)
+        {
+            if (apiException.Content == null)
+                return new ApiErrorDto { Code = (int)apiException.StatusCode, Reason = apiException.Message };
+
+            try
+            {
+                var errorContent = apiException.Content;
+                var errorDto = JsonSerializer.Deserialize<ApiErrorDto>(
+                    errorContent,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                return errorDto ?? new ApiErrorDto
+                {
+                    Code = (int)apiException.StatusCode,
+                    Reason = apiException.Message
+                };
+            }
+            catch
+            {
+                // If parsing fails, return a generic error
+                return new ApiErrorDto
+                {
+                    Code = (int)apiException.StatusCode,
+                    Reason = apiException.Message
+                };
             }
         }
 
@@ -107,8 +192,7 @@ namespace ap.nexus.agents.website.Services
             {
                 Id = Guid.NewGuid(),
                 ChatSessionId = chatSessionId,
-                Role = message.Role,
-                //SenderName = message.AuthorName ?? message.Role.Label,
+                Role = message.Role.Label,
                 Timestamp = DateTime.UtcNow,
                 Items = new List<MessageContentItem>()
             };
@@ -162,11 +246,15 @@ namespace ap.nexus.agents.website.Services
 
             if (existingSession == null)
             {
+                // Try to get agent name
+                var agent = _stateContainer.AvailableAgents.FirstOrDefault(a => a.Id == agentId);
+                var title = agent != null ? $"Chat with {agent.Name}" : $"Chat {threadId}";
+
                 // Create a new chat session
                 var newSession = new ChatSessionDto
                 {
                     Id = threadId,
-                    Title = $"Chat with Agent {agentId}",
+                    Title = title,
                     CreatedAt = DateTime.UtcNow,
                     LastActivityAt = DateTime.UtcNow,
                     IsWebSearchEnabled = _stateContainer.IsWebSearchEnabled,
@@ -185,6 +273,7 @@ namespace ap.nexus.agents.website.Services
         }
     }
 
+
     /// <summary>
     /// Interface for chat services
     /// </summary>
@@ -192,5 +281,13 @@ namespace ap.nexus.agents.website.Services
     {
         Task<MessageDto> SendMessageAsync(Guid agentId, string content, Guid? threadId = null);
         Task<List<MessageDto>> GetMessageHistoryAsync(Guid threadId);
+    }
+
+    public class ApiErrorDto
+    {
+        public string Status { get; set; }
+        public int Code { get; set; }
+        public string Reason { get; set; }
+        public string Note { get; set; }
     }
 }

@@ -16,6 +16,16 @@ builder.Services.AddNexusModule<AgentsInfrastructureModule>(builder.Configuratio
 builder.Services.AddNexusModule<SettingManagerApplicationModule>(builder.Configuration);
 builder.Services.AddNexusModule<AgentsApplicationModule>(builder.Configuration);
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
 // Add FastEndpoints.
 builder.Services.AddFastEndpoints()
     .SwaggerDocument();
@@ -33,6 +43,8 @@ await app.Services.InitializeNexusModulesAsync();
 
 // Configure middleware.
 app.UseFastEndpoints()
+    .UseDefaultExceptionHandler()
+    .UseCors()
     .UseSwaggerGen();
 
 
