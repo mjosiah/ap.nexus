@@ -248,7 +248,7 @@ namespace ap.nexus.agents.website.Services
             {
                 // Try to get agent name
                 var agent = _stateContainer.AvailableAgents.FirstOrDefault(a => a.Id == agentId);
-                var title = agent != null ? $"Chat with {agent.Name}" : $"Chat {threadId}";
+                var title = agent != null ? $"Chat with {agent.Name}" : "Untitled";
 
                 // Create a new chat session
                 var newSession = new ChatSessionDto

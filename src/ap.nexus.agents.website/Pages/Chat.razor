@@ -162,10 +162,14 @@
     {
         var agentName = StateContainer.GetCurrentAgent()?.Name;
         var sessionName = StateContainer.GetCurrentChatSession()?.Title;
-        
+
         if (!string.IsNullOrEmpty(sessionName))
         {
             _pageTitle = sessionName;
+        }
+        else if (_threadId == null || _threadId == Guid.Empty)
+        {
+            _pageTitle = "Untitled"; // Set to "Untitled" when no thread exists
         }
         else if (!string.IsNullOrEmpty(agentName))
         {
