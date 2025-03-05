@@ -189,11 +189,13 @@ namespace ap.nexus.agents.website.Services
             if (!_messagesByChat.ContainsKey(message.ChatSessionId))
             {
                 _messagesByChat[message.ChatSessionId] = new List<MessageDto>();
+                _logger.LogDebug("Created new message collection for thread {ThreadId}", message.ChatSessionId);
             }
 
             _messagesByChat[message.ChatSessionId].Add(message);
-            _logger.LogDebug("Added message to chat {ChatId}: {Content}",
-                message.ChatSessionId, message.TextContent.Substring(0, Math.Min(50, message.TextContent.Length)));
+            _logger.LogDebug("Added message to thread {ThreadId}: {Content}",
+                message.ChatSessionId,
+                message.TextContent.Substring(0, Math.Min(50, message.TextContent.Length)));
 
             MessagesChanged?.Invoke(message.ChatSessionId);
 

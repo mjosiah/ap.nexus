@@ -10,10 +10,10 @@ namespace ap.nexus.agents.application.Services
     public class ThreadService : IThreadService
     {
         private readonly IGenericRepository<ChatThread> _chatThreadRepository;
-        private readonly IGenericRepository<Agent> _agentRepository;
+        private readonly IGenericRepository<AgentEntity> _agentRepository;
         private readonly ILogger<ThreadService> _logger;
 
-        public ThreadService(IGenericRepository<ChatThread> chatThreadRepository, IGenericRepository<Agent> agentRepository, ILogger<ThreadService> logger)
+        public ThreadService(IGenericRepository<ChatThread> chatThreadRepository, IGenericRepository<AgentEntity> agentRepository, ILogger<ThreadService> logger)
         {
             _chatThreadRepository = chatThreadRepository;
             _agentRepository = agentRepository;

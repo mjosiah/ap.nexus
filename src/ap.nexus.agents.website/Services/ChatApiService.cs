@@ -299,7 +299,7 @@ namespace ap.nexus.agents.website.Services
                     Name = a.Name,
                     Description = a.Description,
                     Instruction = a.Instruction,
-                    //IsActive = a.IsActive,
+                    IsActive = true,
                     //AvatarUrl = a.AvatarUrl
                 }).ToList();
 

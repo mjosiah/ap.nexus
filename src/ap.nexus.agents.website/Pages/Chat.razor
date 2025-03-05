@@ -133,17 +133,15 @@
     {
         var threadId = _threadId ?? StateContainer.CurrentChatSessionId;
 
-        // Get messages for current thread, or any system messages if we don't have a thread
-        List<MessageDto> stateMessages;
         if (threadId == Guid.Empty)
         {
-            // Get any system messages that might not be associated with a thread
-            stateMessages = StateContainer.GetMessagesForChat(Guid.Empty);
+            // Keep any local messages (like errors) if we don't have a thread yet
+            // but don't add new ones from state
+            return;
         }
-        else
-        {
-            stateMessages = StateContainer.GetMessagesForChat(threadId);
-        }
+
+        var stateMessages = StateContainer.GetMessagesForChat(threadId);
+        Console.WriteLine($"Updating UI with {stateMessages.Count} messages for thread {threadId}");
 
         _messages = stateMessages.Select(m => new MessageList.MessageModel
             {
@@ -151,7 +149,7 @@
                 Content = m.TextContent,
                 IsFromUser = m.IsFromUser,
                 Timestamp = m.Timestamp,
-                Role = m.Role  // Make sure to include the Role property
+                Role = m.Role
             }).ToList();
 
         StateHasChanged();
@@ -182,65 +180,78 @@
     private async Task SendMessage(string content)
     {
         if (string.IsNullOrWhiteSpace(content)) return;
-        
+
         // Verify that an agent is selected
         if (StateContainer.CurrentAgentId == Guid.Empty)
         {
-            // No agent selected, show a message to select one
+            // No agent selected, show a message
             var warningMessage = new MessageList.MessageModel
-            {
-                Id = Guid.NewGuid().ToString(),
-                Content = "Please select an agent from the dropdown at the top of the screen before sending a message.",
-                IsFromUser = false,
-                Timestamp = DateTime.Now
-            };
-            
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Content = "Please select an agent before sending a message.",
+                    IsFromUser = false,
+                    Timestamp = DateTime.Now,
+                    Role = AuthorRole.System.Label
+                };
+
             _messages.Add(warningMessage);
             await ScrollToBottomAsync();
             return;
         }
-        
+
         // Disable input while processing
         _isMessageInputDisabled = true;
-        
+
         try
         {
+            // Save content for logging
+            string sentContent = content;
+
             // Add message to UI immediately for responsive feel
             var tempMessage = new MessageList.MessageModel
-            {
-                Id = Guid.NewGuid().ToString(),
-                Content = content,
-                IsFromUser = true,
-                Timestamp = DateTime.Now
-            };
-            
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Content = content,
+                    IsFromUser = true,
+                    Timestamp = DateTime.Now
+                };
+
             _messages.Add(tempMessage);
             await ScrollToBottomAsync();
-            
+
             // Send via API
             var agentId = StateContainer.CurrentAgentId;
             var response = await ChatService.SendMessageAsync(agentId, content, _threadId);
-            
+
             // Update thread ID if this is a new thread
-            if (!_threadId.HasValue)
+            if (!_threadId.HasValue || _threadId == Guid.Empty)
             {
+                Console.WriteLine($"New thread created: {response.ChatSessionId}");
                 _threadId = response.ChatSessionId;
                 StateContainer.CurrentChatSessionId = response.ChatSessionId;
+
+                // Important: Since thread ID changed, we need to update UI with messages for this thread
+                UpdateMessages();
             }
-            
-            // Messages will be updated through the state container events
+
+            // Force update messages to ensure we have the latest
+            UpdateMessages();
+
+            Console.WriteLine($"Message sent to thread {_threadId}: {sentContent.Substring(0, Math.Min(20, sentContent.Length))}...");
         }
         catch (Exception ex)
         {
             // Handle error
+            Console.Error.WriteLine($"Error sending message: {ex.Message}");
             var errorMessage = new MessageList.MessageModel
-            {
-                Id = Guid.NewGuid().ToString(),
-                Content = $"Error sending message: {ex.Message}",
-                IsFromUser = false,
-                Timestamp = DateTime.Now
-            };
-            
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Content = $"Error sending message: {ex.Message}",
+                    IsFromUser = false,
+                    Timestamp = DateTime.Now,
+                    Role = AuthorRole.System.Label
+                };
+
             _messages.Add(errorMessage);
             await ScrollToBottomAsync();
         }
@@ -259,8 +270,11 @@
     private void OnMessagesChanged(Guid chatId)
     {
         var threadId = _threadId ?? StateContainer.CurrentChatSessionId;
-        if (chatId == threadId || threadId == Guid.Empty)
+
+        // Handle both specific thread messages and messages for new threads
+        if (chatId == threadId || (threadId == Guid.Empty && !_threadId.HasValue))
         {
+            Console.WriteLine($"Messages changed for thread {chatId}, updating UI");
             UpdateMessages();
         }
     }

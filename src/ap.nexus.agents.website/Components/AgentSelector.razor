@@ -1,8 +1,15 @@
 ﻿@using ap.nexus.agents.website.Services
 @inject StateContainer StateContainer
 @inject IJSRuntime JS
+@implements IDisposable
 
 <div class="agent-selector position-relative">
+    <!-- Debug info during development -->
+    @if (Agents.Count == 0)
+    {
+        <span class="text-danger small">No agents available</span>
+    }
+
     <!-- Selector button with selected agent info -->
     <button @onclick="ToggleDropdown"
             class="agent-selector-btn d-flex align-items-center bg-dark-secondary border-0 rounded py-1 px-3"
@@ -31,7 +38,7 @@
                 <div class="agent-avatar bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center">
                     <i class="bi bi-robot text-white"></i>
                 </div>
-                <span class="agent-name text-light">Select an Agent</span>
+                <span class="agent-name text-light">Select an Agent (@Agents.Count available)</span>
             </div>
         }
         <i class="bi bi-chevron-down ms-2 text-secondary"></i>
@@ -42,7 +49,7 @@
     {
         <div class="agent-dropdown bg-dark-secondary border border-dark-border rounded mt-2 position-absolute start-0 shadow-lg" style="z-index: 1000; width: 300px;">
             <div class="dropdown-header border-bottom border-dark-border p-2">
-                <span class="text-light">Available Agents</span>
+                <span class="text-light">Available Agents (@Agents.Count)</span>
             </div>
             <div class="agent-list py-1" style="max-height: 300px; overflow-y: auto;">
                 @foreach (var agent in Agents.Where(a => a.IsActive))
@@ -88,17 +95,34 @@
 
     protected override void OnInitialized()
     {
-        // If no agents available, use what's in the state container
+        // Subscribe to state changes for available agents
+        StateContainer.AvailableAgentsChanged += OnAvailableAgentsChanged;
+
+        LoadAgents();
+    }
+
+    private void LoadAgents()
+    {
+        // If no agents available in parameter, use what's in the state container
         if (!Agents.Any())
         {
             Agents = StateContainer.AvailableAgents;
+            Console.WriteLine($"Loaded {Agents.Count} agents from state container");
         }
 
         // If no selected agent but there are agents, select the first one
         if (SelectedAgentId == Guid.Empty && Agents.Any())
         {
             SelectedAgentId = Agents.First().Id;
+            Console.WriteLine($"Auto-selected agent: {SelectedAgentId}");
         }
+    }
+
+    private void OnAvailableAgentsChanged()
+    {
+        Console.WriteLine($"Agent selector received notification: {StateContainer.AvailableAgents.Count} agents available");
+        LoadAgents();
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -107,6 +131,10 @@
         {
             // Register a global click handler to close the dropdown when clicking outside
             await JS.InvokeVoidAsync("registerDropdownOutsideClickHandler", "agent-selector");
+
+            // Force a state refresh
+            LoadAgents();
+            StateHasChanged();
         }
     }
 
@@ -129,5 +157,11 @@
             _isOpen = false;
             StateHasChanged();
         }
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe from events
+        StateContainer.AvailableAgentsChanged -= OnAvailableAgentsChanged;
     }
 }
