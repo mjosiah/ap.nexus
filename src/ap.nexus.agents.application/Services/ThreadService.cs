@@ -101,7 +101,7 @@ namespace ap.nexus.agents.application.Services
         /// <summary>
         /// Retrieves all chat threads in a paged format.
         /// </summary>
-        public async Task<PagedResultDto<ChatThreadDto>> GetAllThreadsAsync(PagedAndSortedResultRequestDto input)
+        public async Task<PagedResult<ChatThreadDto>> GetAllThreadsAsync(PagedAndSortedResultRequest input)
         {
             try
             {
@@ -134,7 +134,7 @@ namespace ap.nexus.agents.application.Services
 
                 _logger.LogInformation("Retrieved {Count} chat threads.", threadDtos.Count);
 
-                return new PagedResultDto<ChatThreadDto>
+                return new PagedResult<ChatThreadDto>
                 {
                     TotalCount = totalCount,
                     Items = threadDtos

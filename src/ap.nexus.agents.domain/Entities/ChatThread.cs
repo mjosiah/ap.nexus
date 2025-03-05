@@ -11,6 +11,6 @@ namespace ap.nexus.agents.domain.Entities
         public string UserId { get; set; } = string.Empty; 
 
         // Navigation properties
-        public virtual Agent Agent { get; set; } 
+        public virtual AgentEntity Agent { get; set; } 
     }
 }

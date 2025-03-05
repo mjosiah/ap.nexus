@@ -10,9 +10,9 @@ namespace ap.nexus.agents.infrastructure
         {
             if (!context.Agents.Any())
             {
-                var agents = new List<Agent>
+                var agents = new List<AgentEntity>
                 {
-                    new Agent
+                    new AgentEntity
                     {
                         Name = "Albert the magnificient",
                         Description = "Personal AI",
@@ -23,7 +23,7 @@ namespace ap.nexus.agents.infrastructure
                         ScopeId = "michael.josiah@mandg.com",
                         Tools = "[]"
                     },
-                    new Agent
+                    new AgentEntity
                     {
                         Name = "AI and Analytics AI",
                         Description = "Analytics team AI",

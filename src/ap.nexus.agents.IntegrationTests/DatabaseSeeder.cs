@@ -10,9 +10,9 @@ namespace ap.nexus.agents.IntegrationTests
         {
             if (!context.Agents.Any())
             {
-                var agents = new List<Agent>
+                var agents = new List<AgentEntity>
                 {
-                    new Agent
+                    new AgentEntity
                     {
                         Id = Guid.NewGuid(),
                         Name = "Agent One",
@@ -24,7 +24,7 @@ namespace ap.nexus.agents.IntegrationTests
                         ScopeId = "Scope1",
                         Tools = "[]"
                     },
-                    new Agent
+                    new AgentEntity
                     {
                         Id = Guid.NewGuid(),
                         Name = "Agent Two",

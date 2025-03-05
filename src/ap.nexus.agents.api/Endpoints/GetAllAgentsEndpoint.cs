@@ -1,5 +1,6 @@
 ﻿using ap.nexus.abstractions.Agents.DTOs;
 using ap.nexus.abstractions.Agents.Interfaces;
+using ap.nexus.agents.api.contracts;
 using ap.nexus.agents.application.Exceptions;
 using FastEndpoints;
 using System.ComponentModel.DataAnnotations;
@@ -7,7 +8,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ap.nexus.agents.api.Endpoints
 {
-    public class GetAllAgentsEndpoint : Endpoint<PagedAndSortedResultRequestDto, PagedResultDto<AgentDto>>
+    public class GetAllAgentsEndpoint : Endpoint<PagedAndSortedResultRequestDto, contracts.PagedResultDto<AgentDto>>
     {
         private readonly IAgentService _agentService;
         public GetAllAgentsEndpoint(IAgentService agentService)
@@ -30,8 +31,27 @@ namespace ap.nexus.agents.api.Endpoints
         {
             try
             {
-                var pagedResult = await _agentService.GetAgentsAsync(req);
-                await SendAsync(pagedResult, cancellation: ct);
+                var request = new PagedAndSortedResultRequest
+                {
+                    MaxResultCount = req.MaxResultCount,
+                    SkipCount = req.SkipCount,
+                    Sorting = req.Sorting
+                };
+                var pagedResult = await _agentService.GetAgentsAsync(request);
+               
+                var agents = pagedResult.Items.Select(x => new AgentDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Description = x.Description,
+                }).ToList();
+
+                var newPagedResult = new contracts.PagedResultDto<AgentDto>
+                {
+                    Items = agents,
+                    TotalCount = pagedResult.TotalCount
+                };
+                await SendAsync(newPagedResult, cancellation: ct);
             }
             catch (ValidationException vex)
             {

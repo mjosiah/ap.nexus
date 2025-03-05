@@ -1,5 +1,4 @@
-﻿using ap.nexus.abstractions.Agents.DTOs;
-using ap.nexus.agents.api.contracts;
+﻿using ap.nexus.agents.api.contracts;
 using Refit;
 
 namespace ap.nexus.agents.apiclient
@@ -10,6 +9,6 @@ namespace ap.nexus.agents.apiclient
         Task<ChatResponse> SendChatMessageAsync([Body] ChatRequest request);
 
         [Get("/agents")]
-        Task<PagedResultDto<AgentDto>> GetAgentsAsync([Query] PagedAndSortedResultRequestDto request);
+        Task<api.contracts.PagedResultDto<AgentDto>> GetAgentsAsync([Query] api.contracts.PagedAndSortedResultRequestDto request);
     }
 }

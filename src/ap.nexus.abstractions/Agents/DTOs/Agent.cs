@@ -2,7 +2,7 @@
 
 namespace ap.nexus.abstractions.Agents.DTOs
 {
-    public class AgentDto
+    public class Agent
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;

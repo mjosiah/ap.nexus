@@ -1,5 +1,6 @@
 ﻿using ap.nexus.abstractions.Agents.DTOs;
 using ap.nexus.abstractions.Agents.Interfaces;
+using ap.nexus.agents.api.contracts;
 using ap.nexus.agents.application.Exceptions;
 using FastEndpoints;
 using System.ComponentModel.DataAnnotations;
@@ -31,7 +32,14 @@ namespace ap.nexus.agents.api.Endpoints
             try
             {
                 var result = await _agentService.CreateAgentAsync(req);
-                await SendAsync(result, cancellation: ct);
+                var agentDto = new AgentDto
+                {
+                    Id = result.Id,
+                    Name = result.Name,
+                    Description = result.Description,
+                    
+                };
+                await SendAsync(agentDto, cancellation: ct);
             }
             catch (ValidationException vex)
             { 

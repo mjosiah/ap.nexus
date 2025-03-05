@@ -20,7 +20,7 @@ namespace ap.nexus.agents.IntegrationTests
         [Fact]
         public async Task GetAllAgents_ShouldReturnSeededAgents()
         {
-            var requestDto = new PagedAndSortedResultRequestDto
+            var requestDto = new PagedAndSortedResultRequest
             {
                 SkipCount = 0,
                 MaxResultCount = 10,

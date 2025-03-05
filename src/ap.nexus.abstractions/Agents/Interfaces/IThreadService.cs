@@ -8,7 +8,7 @@ namespace ap.nexus.abstractions.Agents.Interfaces
 
         Task<ChatThreadDto?> GetThreadByIdAsync(Guid Id);
 
-        Task<PagedResultDto<ChatThreadDto>> GetAllThreadsAsync(PagedAndSortedResultRequestDto input);
+        Task<PagedResult<ChatThreadDto>> GetAllThreadsAsync(PagedAndSortedResultRequest input);
         Task DeleteThreadByIdAsync(Guid Id);
         Task<bool> ThreadIdExistsAsync(Guid Id);
 

@@ -12,13 +12,13 @@ namespace ap.nexus.agents.application.Services
     /// </summary>
     public class AgentService : IAgentService
     {
-        private readonly IGenericRepository<Agent> _agentRepository;
+        private readonly IGenericRepository<AgentEntity> _agentRepository;
 
         /// <summary>
         /// Constructs a new instance of AgentService with the provided repository.
         /// </summary>
         /// <param name="agentRepository">Repository for Agent entities.</param>
-        public AgentService(IGenericRepository<Agent> agentRepository)
+        public AgentService(IGenericRepository<AgentEntity> agentRepository)
         {
             _agentRepository = agentRepository;
         }
@@ -31,7 +31,7 @@ namespace ap.nexus.agents.application.Services
         /// <exception cref="FriendlyBusinessException">
         /// Thrown when the provided agent name is "Invalid".
         /// </exception>
-        public async Task<AgentDto> CreateAgentAsync(CreateAgentRequest request)
+        public async Task<Agent> CreateAgentAsync(CreateAgentRequest request)
         {
             // Business rule: Agent name cannot be "Invalid".
             if (string.Equals(request.Name, "Invalid", StringComparison.OrdinalIgnoreCase))
@@ -40,7 +40,7 @@ namespace ap.nexus.agents.application.Services
             }
 
             // Create a new agent entity
-            var agent = new Agent
+            var agent = new AgentEntity
             {
                 Id = Guid.NewGuid(),
                 Name = request.Name,
@@ -58,7 +58,7 @@ namespace ap.nexus.agents.application.Services
             await _agentRepository.SaveChangesAsync();
 
             // Map the entity to its DTO representation and return it
-            return new AgentDto
+            return new Agent
             {
                 Id = agent.Id,
                 Name = agent.Name,
@@ -106,7 +106,7 @@ namespace ap.nexus.agents.application.Services
         /// <exception cref="FriendlyBusinessException">
         /// Thrown when the agent with the provided external ID is not found.
         /// </exception>
-        public async Task<AgentDto> GetAgentByIdAsync(Guid agentId)
+        public async Task<Agent> GetAgentByIdAsync(Guid agentId)
         {
             var agent = await _agentRepository.Query()
                 .FirstOrDefaultAsync(a => a.Id == agentId);
@@ -121,7 +121,7 @@ namespace ap.nexus.agents.application.Services
                         ?? new List<ToolConfigurationDto>();
 
             // Map the entity to its DTO representation
-            return new AgentDto
+            return new Agent
             {
                 Id = agent.Id,
                 Name = agent.Name,
@@ -141,7 +141,7 @@ namespace ap.nexus.agents.application.Services
         /// </summary>
         /// <param name="input">Pagination and sorting parameters.</param>
         /// <returns>A paged result of AgentDto objects.</returns>
-        public async Task<PagedResultDto<AgentDto>> GetAgentsAsync(PagedAndSortedResultRequestDto input)
+        public async Task<PagedResult<Agent>> GetAgentsAsync(PagedAndSortedResultRequest input)
         {
             // Start with the base query
             var query = _agentRepository.Query();
@@ -166,7 +166,7 @@ namespace ap.nexus.agents.application.Services
                                     .ToListAsync();
 
             // Map the entity list to a list of DTOs
-            var agentDtos = agents.Select(agent => new AgentDto
+            var agentDtos = agents.Select(agent => new Agent
             {
                 Id = agent.Id,
                 Name = agent.Name,
@@ -182,7 +182,7 @@ namespace ap.nexus.agents.application.Services
             }).ToList();
 
             // Return the paged result
-            return new PagedResultDto<AgentDto>
+            return new PagedResult<Agent>
             {
                 TotalCount = totalCount,
                 Items = agentDtos
@@ -198,7 +198,7 @@ namespace ap.nexus.agents.application.Services
         /// <exception cref="FriendlyBusinessException">
         /// Thrown when the agent is not found or if the updated agent name is invalid.
         /// </exception>
-        public async Task<AgentDto> UpdateAgentAsync(Guid agentId, UpdateAgentRequest request)
+        public async Task<Agent> UpdateAgentAsync(Guid agentId, UpdateAgentRequest request)
         {
             // Locate the agent by its external ID
             var agent = await _agentRepository.Query()
@@ -239,7 +239,7 @@ namespace ap.nexus.agents.application.Services
                                System.Text.Json.JsonSerializer.Deserialize<List<ToolConfigurationDto>>(agent.Tools)
                                ?? new List<ToolConfigurationDto>();
 
-            return new AgentDto
+            return new Agent
             {
                 Id = agent.Id,
                 Name = agent.Name,

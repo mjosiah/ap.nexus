@@ -3,7 +3,7 @@ using ap.nexus.core.domain;
 
 namespace ap.nexus.agents.domain.Entities
 {
-    public class Agent : AuditableEntity
+    public class AgentEntity : AuditableEntity
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;

@@ -299,8 +299,8 @@ namespace ap.nexus.agents.website.Services
                     Name = a.Name,
                     Description = a.Description,
                     Instruction = a.Instruction,
-                    IsActive = a.IsActive,
-                    AvatarUrl = a.AvatarUrl
+                    //IsActive = a.IsActive,
+                    //AvatarUrl = a.AvatarUrl
                 }).ToList();
 
                 // Store in state

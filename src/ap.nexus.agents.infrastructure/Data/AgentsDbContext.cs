@@ -11,14 +11,14 @@ namespace ap.nexus.agents.infrastructure.Data
         {
         }
 
-        public DbSet<Agent> Agents { get; set; }
+        public DbSet<AgentEntity> Agents { get; set; }
         public DbSet<ChatThread> ChatThreads { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.Entity<Agent>(entity =>
+            modelBuilder.Entity<AgentEntity>(entity =>
             {
                 // Global filter to ignore soft-deleted records.
                 entity.HasQueryFilter(a => !a.IsDeleted);

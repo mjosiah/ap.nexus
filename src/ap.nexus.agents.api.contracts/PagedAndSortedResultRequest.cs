@@ -1,6 +1,6 @@
-﻿namespace ap.nexus.abstractions.Agents.DTOs
+﻿namespace ap.nexus.agents.api.contracts
 {
-    public class PagedAndSortedResultRequest
+    public class PagedAndSortedResultRequestDto
     {
         public int MaxResultCount { get; set; } = 10;
         public int SkipCount { get; set; } = 0;

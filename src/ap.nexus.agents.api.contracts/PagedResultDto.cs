@@ -1,4 +1,4 @@
-﻿namespace ap.nexus.abstractions.Agents.DTOs
+﻿namespace ap.nexus.agents.api.contracts
 {
     public class PagedResultDto<T>
     {

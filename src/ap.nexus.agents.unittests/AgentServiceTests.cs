@@ -11,12 +11,12 @@ namespace ap.nexus.agents.unittests
 {
     public class AgentServiceTests
     {
-        private readonly Mock<IGenericRepository<Agent>> _agentRepositoryMock;
+        private readonly Mock<IGenericRepository<AgentEntity>> _agentRepositoryMock;
         private readonly AgentService _agentService;
 
         public AgentServiceTests()
         {
-            _agentRepositoryMock = new Mock<IGenericRepository<Agent>>();
+            _agentRepositoryMock = new Mock<IGenericRepository<AgentEntity>>();
             _agentService = new AgentService(_agentRepositoryMock.Object);
         }
 
@@ -60,8 +60,9 @@ namespace ap.nexus.agents.unittests
             };
 
             _agentRepositoryMock
-                .Setup(r => r.AddAsync(It.IsAny<Agent>()))
-                .ReturnsAsync((Agent agent) => agent);
+                .Setup(r => r.AddAsync(It.IsAny<AgentEntity>()))
+                .ReturnsAsync((AgentEntity agent) => agent);
+
             _agentRepositoryMock
                 .Setup(r => r.SaveChangesAsync())
                 .ReturnsAsync(1);

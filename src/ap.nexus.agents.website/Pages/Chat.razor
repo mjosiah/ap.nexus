@@ -49,50 +49,46 @@
     private Guid? _threadId;
     private bool _isMessageInputDisabled = false;
     
+    // Modify OnInitializedAsync in Chat.razor
     protected override async Task OnInitializedAsync()
     {
         // Subscribe to state changes
         StateContainer.MessagesChanged += OnMessagesChanged;
         StateContainer.CurrentAgentChanged += OnCurrentAgentChanged;
         StateContainer.FeatureFlagsChanged += OnFeatureFlagsChanged;
-        
+
         // Get available agents if needed
         if (!StateContainer.AvailableAgents.Any())
         {
-            // In a real implementation, you would load available agents from an API
-            // For now, we'll add some sample agents
-            StateContainer.AvailableAgents = new List<AgentDto>
+            try
             {
-                new AgentDto 
-                { 
-                    Id = Guid.NewGuid(), 
-                    Name = "General Assistant", 
-                    Description = "A helpful assistant for general questions",
-                    IsActive = true
-                },
-                new AgentDto 
-                { 
-                    Id = Guid.NewGuid(), 
-                    Name = "Code Helper", 
-                    Description = "Specialized in programming assistance",
-                    IsActive = true
-                },
-                new AgentDto 
-                { 
-                    Id = Guid.NewGuid(), 
-                    Name = "Data Analyst", 
-                    Description = "Helps with data analysis tasks",
-                    IsActive = true
+                await ChatService.GetAvailableAgentsAsync();
+
+                // Auto-select the first agent
+                if (StateContainer.AvailableAgents.Any())
+                {
+                    StateContainer.CurrentAgentId = StateContainer.AvailableAgents.First().Id;
                 }
-            };
-            
-            // Auto-select the first agent
-            if (StateContainer.AvailableAgents.Any())
+            }
+            catch (Exception ex)
             {
-                StateContainer.CurrentAgentId = StateContainer.AvailableAgents.First().Id;
+                // Handle error
+                Console.Error.WriteLine($"Error loading agents: {ex.Message}");
+
+                // Show an error message to the user
+                var errorMessage = new MessageList.MessageModel
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Content = $"Error loading agents: {ex.Message}",
+                        IsFromUser = false,
+                        Timestamp = DateTime.Now,
+                        Role = Microsoft.SemanticKernel.ChatCompletion.AuthorRole.System.Label
+                    };
+
+                _messages.Add(errorMessage);
             }
         }
-        
+
         await base.OnInitializedAsync();
     }
     
