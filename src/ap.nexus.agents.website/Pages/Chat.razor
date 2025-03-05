@@ -9,6 +9,7 @@
 @inject StateContainer StateContainer
 @inject IChatService ChatService
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 @implements IDisposable
 
 <PageTitle>@_pageTitle</PageTitle>
@@ -72,24 +73,62 @@
             }
             catch (Exception ex)
             {
-                // Handle error
                 Console.Error.WriteLine($"Error loading agents: {ex.Message}");
 
-                // Show an error message to the user
+                // Show error message in UI
                 var errorMessage = new MessageList.MessageModel
                     {
                         Id = Guid.NewGuid().ToString(),
                         Content = $"Error loading agents: {ex.Message}",
                         IsFromUser = false,
                         Timestamp = DateTime.Now,
-                        Role = Microsoft.SemanticKernel.ChatCompletion.AuthorRole.System.Label
+                        Role = AuthorRole.System.Label
                     };
 
                 _messages.Add(errorMessage);
             }
         }
 
+        // Check if thread ID is provided
+        if (!string.IsNullOrEmpty(ThreadId) && Guid.TryParse(ThreadId, out var parsedThreadId))
+        {
+            _threadId = parsedThreadId;
+            StateContainer.CurrentChatSessionId = parsedThreadId;
+
+            // Load thread history
+            await LoadThreadHistoryAsync(parsedThreadId);
+        }
+        else
+        {
+            // New chat - ensure we have an "Untitled" entry
+            EnsureUntitledChatExists();
+        }
+
         await base.OnInitializedAsync();
+    }
+
+    private void EnsureUntitledChatExists()
+    {
+        // If there's no placeholder session for a new chat, create one
+        var placeholder = StateContainer.ChatSessions.FirstOrDefault(s => s.Id == Guid.Empty);
+        if (placeholder == null)
+        {
+            var newSession = new ChatSessionDto
+                {
+                    Id = Guid.Empty, // Will be replaced with real ID after first message
+                    Title = "Untitled",
+                    CreatedAt = DateTime.UtcNow,
+                    LastActivityAt = DateTime.UtcNow,
+                    IsWebSearchEnabled = StateContainer.IsWebSearchEnabled,
+                    IsDeepThinkingEnabled = StateContainer.IsDeepThinkingEnabled
+                };
+
+            StateContainer.ChatSessions.Add(newSession);
+            StateContainer.NotifyChatSessionsChanged();
+        }
+
+        _threadId = null;
+        StateContainer.CurrentChatSessionId = Guid.Empty;
     }
     
     protected override async Task OnParametersSetAsync()
@@ -160,24 +199,27 @@
     
     private void UpdatePageTitle()
     {
-        var agentName = StateContainer.GetCurrentAgent()?.Name;
-        var sessionName = StateContainer.GetCurrentChatSession()?.Title;
-
-        if (!string.IsNullOrEmpty(sessionName))
+        if (_threadId == null || _threadId == Guid.Empty)
         {
-            _pageTitle = sessionName;
-        }
-        else if (_threadId == null || _threadId == Guid.Empty)
-        {
-            _pageTitle = "Untitled"; // Set to "Untitled" when no thread exists
-        }
-        else if (!string.IsNullOrEmpty(agentName))
-        {
-            _pageTitle = $"Chat with {agentName}";
+            _pageTitle = "Untitled";
         }
         else
         {
-            _pageTitle = "Chat";
+            var sessionName = StateContainer.GetCurrentChatSession()?.Title;
+            var agentName = StateContainer.GetCurrentAgent()?.Name;
+
+            if (!string.IsNullOrEmpty(sessionName))
+            {
+                _pageTitle = sessionName;
+            }
+            else if (!string.IsNullOrEmpty(agentName))
+            {
+                _pageTitle = $"Chat with {agentName}";
+            }
+            else
+            {
+                _pageTitle = "Chat";
+            }
         }
     }
     
@@ -188,11 +230,11 @@
         // Verify that an agent is selected
         if (StateContainer.CurrentAgentId == Guid.Empty)
         {
-            // No agent selected, show a message
+            // No agent selected, show a message to select one
             var warningMessage = new MessageList.MessageModel
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Content = "Please select an agent before sending a message.",
+                    Content = "Please select an agent from the dropdown at the top of the screen before sending a message.",
                     IsFromUser = false,
                     Timestamp = DateTime.Now,
                     Role = AuthorRole.System.Label
@@ -208,9 +250,6 @@
 
         try
         {
-            // Save content for logging
-            string sentContent = content;
-
             // Add message to UI immediately for responsive feel
             var tempMessage = new MessageList.MessageModel
                 {
@@ -232,16 +271,43 @@
             {
                 Console.WriteLine($"New thread created: {response.ChatSessionId}");
                 _threadId = response.ChatSessionId;
+
+                // Important: Remove any placeholder BEFORE setting the new current chat session ID
+                var placeholder = StateContainer.ChatSessions.FirstOrDefault(s => s.Id == Guid.Empty);
+                if (placeholder != null)
+                {
+                    StateContainer.ChatSessions.Remove(placeholder);
+                    // Notify after removal
+                    StateContainer.NotifyChatSessionsChanged();
+                }
+
+                // Now set the current chat session ID
                 StateContainer.CurrentChatSessionId = response.ChatSessionId;
 
-                // Important: Since thread ID changed, we need to update UI with messages for this thread
+                // Create a new chat session with proper title
+                var agent = StateContainer.GetCurrentAgent();
+                if (agent != null)
+                {
+                    var newSession = new ChatSessionDto
+                        {
+                            Id = response.ChatSessionId,
+                            Title = $"Chat with {agent.Name}",
+                            CreatedAt = DateTime.UtcNow,
+                            LastActivityAt = DateTime.UtcNow,
+                            IsWebSearchEnabled = StateContainer.IsWebSearchEnabled,
+                            IsDeepThinkingEnabled = StateContainer.IsDeepThinkingEnabled
+                        };
+
+                    StateContainer.ChatSessions.Add(newSession);
+                    StateContainer.NotifyChatSessionsChanged();
+                }
+
+                // Update messages for the new thread
                 UpdateMessages();
+
+                // Update navigation to reflect the new thread ID
+                Navigation.NavigateTo($"/chat/{response.ChatSessionId}", replace: true);
             }
-
-            // Force update messages to ensure we have the latest
-            UpdateMessages();
-
-            Console.WriteLine($"Message sent to thread {_threadId}: {sentContent.Substring(0, Math.Min(20, sentContent.Length))}...");
         }
         catch (Exception ex)
         {
@@ -285,7 +351,20 @@
     
     private void OnCurrentAgentChanged()
     {
-        UpdatePageTitle();
+        if (!_threadId.HasValue || _threadId == Guid.Empty)
+        {
+            // If we're in a new chat, just update the "Untitled" session's title
+            EnsureUntitledChatExists();
+        }
+        else
+        {
+            // For existing chats, we should start a new chat when agent changes
+            _threadId = null;
+            StateContainer.CurrentChatSessionId = Guid.Empty;
+            _messages.Clear();
+            EnsureUntitledChatExists();
+        }
+
         StateHasChanged();
     }
     

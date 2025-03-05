@@ -134,7 +134,13 @@
     
     private async Task SelectAgent(Guid agentId)
     {
-        StateContainer.CurrentAgentId = agentId;
+        if (StateContainer.CurrentAgentId != agentId)
+        {
+            // Set the new agent
+            StateContainer.CurrentAgentId = agentId;
+
+            // OnCurrentAgentChanged will handle starting a new conversation
+        }
     }
     
     private async Task NewChat()

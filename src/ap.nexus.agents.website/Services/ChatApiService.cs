@@ -241,7 +241,7 @@ namespace ap.nexus.agents.website.Services
         /// </summary>
         private async Task UpdateChatSessionAsync(Guid threadId, Guid agentId)
         {
-            // Check if the chat session exists
+            // Avoid duplicates - check if this thread already exists
             var existingSession = _stateContainer.ChatSessions.FirstOrDefault(s => s.Id == threadId);
 
             if (existingSession == null)
@@ -260,6 +260,13 @@ namespace ap.nexus.agents.website.Services
                     IsWebSearchEnabled = _stateContainer.IsWebSearchEnabled,
                     IsDeepThinkingEnabled = _stateContainer.IsDeepThinkingEnabled
                 };
+
+                // IMPORTANT: Remove any placeholder session BEFORE adding the new one
+                var placeholder = _stateContainer.ChatSessions.FirstOrDefault(s => s.Id == Guid.Empty);
+                if (placeholder != null)
+                {
+                    _stateContainer.ChatSessions.Remove(placeholder);
+                }
 
                 _stateContainer.ChatSessions.Add(newSession);
                 _stateContainer.NotifyChatSessionsChanged();

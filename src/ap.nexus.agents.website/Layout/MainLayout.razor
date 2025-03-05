@@ -1,28 +1,26 @@
 ﻿@using ap.nexus.agents.website.Components
+@using ap.nexus.agents.website.Models
 @using ap.nexus.agents.website.Services
 @inherits LayoutComponentBase
 @inject StateContainer StateContainer
 @inject NavigationManager Navigation
 
 <div class="app-container d-flex flex-column vh-100 bg-dark text-light">
-    <ChatHeader ChatTitle="@_currentChat?.Title" 
+    <ChatHeader ChatTitle="@GetCurrentChatTitle()"
                 ChatTitleChanged="UpdateChatTitle"
                 OnToggleSidebar="ToggleSidebar"
                 OnNewChat="HandleNewChat"
                 OnExportChat="HandleExportChat"
                 OnDeleteChat="HandleDeleteChat" />
-    
+
     <div class="d-flex flex-grow-1 position-relative">
         <ChatSidebar IsCollapsed="@_sidebarCollapsed"
-                    ChatHistory="@_chatHistory"
-                    ActiveChatId="@_currentChatId"
-                    OnChatSelected="SelectChat" />
-        
-        <div class="@(_sidebarCollapsed ? "col-12" : "col-md-9 col-lg-10 offset-md-3 offset-lg-2") d-flex flex-column h-100" 
+                     ChatHistory="@GetChatHistory()"
+                     ActiveChatId="@GetCurrentChatId()"
+                     OnChatSelected="SelectChat" />
+
+        <div class="@(_sidebarCollapsed ? "col-12" : "col-md-9 col-lg-10 offset-md-3 offset-lg-2") d-flex flex-column h-100"
              style="transition: margin-left 0.3s ease;">
-            @* Remove the action buttons section *@
-            
-            @* This is where page content will be rendered *@
             @Body
         </div>
     </div>
@@ -30,92 +28,148 @@
 
 @code {
     private bool _sidebarCollapsed = false;
-    private bool _webSearchActive = true;
-    private bool _deepThinkingActive = false;
-    private string _currentChatId = "chat1";
-    
-    private List<ChatSidebar.ChatInfo> _chatHistory = new()
-    {
-        new ChatSidebar.ChatInfo 
-        { 
-            Id = "chat1", 
-            Title = "Replit chat text area design implementation",
-            LastActivity = DateTime.Now.AddHours(-20)
-        },
-        new ChatSidebar.ChatInfo 
-        { 
-            Id = "chat2", 
-            Title = "Web component for analytics dashboard",
-            LastActivity = DateTime.Now.AddDays(-2)
-        },
-        new ChatSidebar.ChatInfo 
-        { 
-            Id = "chat3", 
-            Title = "React code review and optimization",
-            LastActivity = DateTime.Now.AddDays(-4)
-        }
-    };
-    
-    private ChatSidebar.ChatInfo _currentChat => _chatHistory.FirstOrDefault(c => c.Id == _currentChatId);
-    
+
     protected override void OnInitialized()
     {
-        // Initialize web search and deep thinking states from state container
-        _webSearchActive = StateContainer.IsWebSearchEnabled;
-        _deepThinkingActive = StateContainer.IsDeepThinkingEnabled;
+        // Subscribe to state changes
+        StateContainer.ChatSessionsChanged += StateHasChanged;
+        StateContainer.CurrentChatSessionChanged += StateHasChanged;
+
+        // Initialize sidebar state from container
+        _sidebarCollapsed = StateContainer.IsSidebarCollapsed;
     }
-    
+
+    private string GetCurrentChatTitle()
+    {
+        var currentSession = StateContainer.GetCurrentChatSession();
+        if (currentSession != null)
+        {
+            return currentSession.Title;
+        }
+
+        // Default to "Untitled" when no session is selected
+        return "Untitled";
+    }
+
+    private string GetCurrentChatId()
+    {
+        if (StateContainer.CurrentChatSessionId != Guid.Empty)
+        {
+            return StateContainer.CurrentChatSessionId.ToString();
+        }
+
+        return "";
+    }
+
+    private List<ChatSidebar.ChatInfo> GetChatHistory()
+    {
+        // Convert chat sessions from state container to the format needed by ChatSidebar
+        return StateContainer.ChatSessions
+            .OrderByDescending(s => s.LastActivityAt)
+            .Select(s => new ChatSidebar.ChatInfo
+                {
+                    Id = s.Id.ToString(),
+                    Title = s.Title ?? "Untitled",
+                    LastActivity = s.LastActivityAt
+                })
+            .ToList();
+    }
+
     private void ToggleSidebar()
     {
         _sidebarCollapsed = !_sidebarCollapsed;
         StateContainer.IsSidebarCollapsed = _sidebarCollapsed;
     }
-    
-    private void ToggleWebSearch()
-    {
-        _webSearchActive = !_webSearchActive;
-        StateContainer.IsWebSearchEnabled = _webSearchActive;
-    }
-    
-    private void ToggleDeepThinking()
-    {
-        _deepThinkingActive = !_deepThinkingActive;
-        StateContainer.IsDeepThinkingEnabled = _deepThinkingActive;
-    }
-    
+
     private void SelectChat(string chatId)
     {
-        _currentChatId = chatId;
-        // Navigate to the selected chat
-        Navigation.NavigateTo($"/chat/{chatId}");
-    }
-    
-    private void UpdateChatTitle(string newTitle)
-    {
-        var chat = _chatHistory.FirstOrDefault(c => c.Id == _currentChatId);
-        if (chat != null)
+        if (Guid.TryParse(chatId, out var parsedId))
         {
-            chat.Title = newTitle;
+            StateContainer.CurrentChatSessionId = parsedId;
+
+            // Navigate to the selected chat
+            Navigation.NavigateTo($"/chat/{chatId}");
         }
     }
-    
+
+    private void UpdateChatTitle(string newTitle)
+    {
+        if (string.IsNullOrWhiteSpace(newTitle))
+        {
+            newTitle = "Untitled";
+        }
+
+        // Update the title in the state container
+        var currentSession = StateContainer.GetCurrentChatSession();
+        if (currentSession != null)
+        {
+            currentSession.Title = newTitle;
+            StateContainer.NotifyChatSessionsChanged();
+        }
+        else if (StateContainer.CurrentChatSessionId == Guid.Empty)
+        {
+            // For a new chat that hasn't been saved yet, we'll create a placeholder session
+            var newSession = new ChatSessionDto
+                {
+                    Id = Guid.Empty, // Will be replaced with real ID when created
+                    Title = newTitle,
+                    CreatedAt = DateTime.UtcNow,
+                    LastActivityAt = DateTime.UtcNow,
+                    IsWebSearchEnabled = StateContainer.IsWebSearchEnabled,
+                    IsDeepThinkingEnabled = StateContainer.IsDeepThinkingEnabled
+                };
+
+            // Check if we already have a placeholder
+            var placeholder = StateContainer.ChatSessions.FirstOrDefault(s => s.Id == Guid.Empty);
+            if (placeholder != null)
+            {
+                placeholder.Title = newTitle;
+            }
+            else
+            {
+                StateContainer.ChatSessions.Add(newSession);
+            }
+
+            StateContainer.NotifyChatSessionsChanged();
+        }
+    }
+
     private void HandleNewChat()
     {
+        // Reset the current chat session
+        StateContainer.CurrentChatSessionId = Guid.Empty;
+
         // Navigate to the root to start a new chat
         Navigation.NavigateTo("/");
     }
-    
+
     private void HandleExportChat()
     {
         // This would be implemented to export the current chat
         Console.WriteLine("Export chat requested");
     }
-    
+
     private void HandleDeleteChat()
     {
-        // This would be implemented to delete the current chat
-        Console.WriteLine("Delete chat requested");
+        // Delete the current chat session
+        var currentSession = StateContainer.GetCurrentChatSession();
+        if (currentSession != null)
+        {
+            StateContainer.ChatSessions.Remove(currentSession);
+            StateContainer.NotifyChatSessionsChanged();
+        }
+
+        // Reset the current session
+        StateContainer.CurrentChatSessionId = Guid.Empty;
+
         // Navigate to the root after deletion
         Navigation.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe from events
+        StateContainer.ChatSessionsChanged -= StateHasChanged;
+        StateContainer.CurrentChatSessionChanged -= StateHasChanged;
     }
 }
