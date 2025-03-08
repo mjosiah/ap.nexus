@@ -21,5 +21,6 @@ builder.Services
 builder.Services.AddScoped<StateContainer>();
 builder.Services.AddScoped<IChatService, ChatApiService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<ChatHistoryService>();
 
 await builder.Build().RunAsync();

@@ -4,6 +4,9 @@
 @inherits LayoutComponentBase
 @inject StateContainer StateContainer
 @inject NavigationManager Navigation
+@inject ChatHistoryService ChatHistoryService
+@inject ILogger<MainLayout> Logger
+@implements IDisposable
 
 <div class="app-container d-flex flex-column vh-100 bg-dark text-light">
     <ChatHeader ChatTitle="@GetCurrentChatTitle()"
@@ -15,7 +18,6 @@
 
     <div class="d-flex flex-grow-1 position-relative">
         <ChatSidebar IsCollapsed="@_sidebarCollapsed"
-                     ChatHistory="@GetChatHistory()"
                      ActiveChatId="@GetCurrentChatId()"
                      OnChatSelected="SelectChat" />
 
@@ -28,8 +30,9 @@
 
 @code {
     private bool _sidebarCollapsed = false;
+    private string _currentUserId = "current-user-id"; // This should come from authentication
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         // Subscribe to state changes
         StateContainer.ChatSessionsChanged += StateHasChanged;
@@ -37,6 +40,43 @@
 
         // Initialize sidebar state from container
         _sidebarCollapsed = StateContainer.IsSidebarCollapsed;
+
+        // Load chat thread history from the API
+        await LoadChatHistoryAsync();
+
+        // Set current chat based on URL if needed
+        await SetCurrentChatFromUrl();
+    }
+
+    private async Task LoadChatHistoryAsync()
+    {
+        try
+        {
+            Logger.LogInformation("Loading chat history for user {UserId}", _currentUserId);
+            await ChatHistoryService.LoadChatHistoryAsync(_currentUserId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading chat history");
+        }
+    }
+
+    private async Task SetCurrentChatFromUrl()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var segments = uri.Segments;
+
+        if (segments.Length >= 3 && segments[1].Equals("chat/", StringComparison.OrdinalIgnoreCase))
+        {
+            var chatId = segments[2].TrimEnd('/');
+
+            // If this is a valid Guid, set it as the current chat session ID
+            if (Guid.TryParse(chatId, out Guid parsedId))
+            {
+                Logger.LogDebug("Setting current chat from URL: {ChatId}", chatId);
+                StateContainer.CurrentChatSessionId = parsedId;
+            }
+        }
     }
 
     private string GetCurrentChatTitle()
@@ -61,19 +101,7 @@
         return "";
     }
 
-    private List<ChatSidebar.ChatInfo> GetChatHistory()
-    {
-        // Convert chat sessions from state container to the format needed by ChatSidebar
-        return StateContainer.ChatSessions
-            .OrderByDescending(s => s.LastActivityAt)
-            .Select(s => new ChatSidebar.ChatInfo
-                {
-                    Id = s.Id.ToString(),
-                    Title = s.Title ?? "Untitled",
-                    LastActivity = s.LastActivityAt
-                })
-            .ToList();
-    }
+
 
     private void ToggleSidebar()
     {
@@ -146,7 +174,7 @@
     private void HandleExportChat()
     {
         // This would be implemented to export the current chat
-        Console.WriteLine("Export chat requested");
+        Logger.LogInformation("Export chat requested for chat {ChatId}", GetCurrentChatId());
     }
 
     private void HandleDeleteChat()
@@ -155,6 +183,9 @@
         var currentSession = StateContainer.GetCurrentChatSession();
         if (currentSession != null)
         {
+            Logger.LogInformation("Deleting chat session {ChatId}: {Title}",
+                currentSession.Id, currentSession.Title);
+
             StateContainer.ChatSessions.Remove(currentSession);
             StateContainer.NotifyChatSessionsChanged();
         }

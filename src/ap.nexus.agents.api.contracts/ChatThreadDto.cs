@@ -12,5 +12,7 @@ namespace ap.nexus.agents.api.contracts
         public string Title { get; set; } = string.Empty;
         public Guid AgentId { get; set; }
         public string UserId { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? LastModifiedAt { get; set; }
     }
 }

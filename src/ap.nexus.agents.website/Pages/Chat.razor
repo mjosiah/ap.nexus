@@ -10,97 +10,104 @@
 @inject IChatService ChatService
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject ILogger<Chat> Logger
 @implements IDisposable
 
 <PageTitle>@_pageTitle</PageTitle>
 
-<div class="chat-container d-flex flex-column h-100">
-    <!-- Web Search and Deep Thinking buttons moved to input area -->
-    <div class="flex-grow-1 overflow-auto">
-        <MessageList Messages="@_messages" />
-    </div>
-
-    <div class="message-controls mt-auto">
-        <div class="feature-toggles d-flex justify-content-end mb-2">
-            <button class="btn btn-sm @(StateContainer.IsWebSearchEnabled ? "btn-primary" : "btn-outline-secondary") me-2" 
-                    @onclick="ToggleWebSearch">
-                <i class="bi bi-globe me-1"></i> Web Search
-            </button>
-            <button class="btn btn-sm @(StateContainer.IsDeepThinkingEnabled ? "btn-primary" : "btn-outline-secondary")" 
-                    @onclick="ToggleDeepThinking">
-                <i class="bi bi-lightning me-1"></i> Deep Thinking
-            </button>
+    <div class="chat-container d-flex flex-column h-100">
+        <!-- Web Search and Deep Thinking buttons moved to input area -->
+        <div class="flex-grow-1 overflow-auto">
+            <MessageList Messages="@_messages" />
         </div>
-        
-        <MessageInput OnSendMessage="SendMessage" 
-                    WebSearchActive="@StateContainer.IsWebSearchEnabled"
-                    DeepThinkingActive="@StateContainer.IsDeepThinkingEnabled"
-                    OnToggleWebSearch="ToggleWebSearch" 
-                    OnToggleDeepThinking="ToggleDeepThinking"
-                    IsDisabled="@_isMessageInputDisabled" />
-    </div>
-</div>
 
-@code {
+        <div class="message-controls mt-auto">
+            <div class="feature-toggles d-flex justify-content-end mb-2">
+                <button class="btn btn-sm @(StateContainer.IsWebSearchEnabled ? "btn-primary" : "btn-outline-secondary") me-2"
+                        @onclick="ToggleWebSearch">
+                    <i class="bi bi-globe me-1"></i> Web Search
+                </button>
+                <button class="btn btn-sm @(StateContainer.IsDeepThinkingEnabled ? "btn-primary" : "btn-outline-secondary")"
+                        @onclick="ToggleDeepThinking">
+                    <i class="bi bi-lightning me-1"></i> Deep Thinking
+                </button>
+            </div>
+
+            <MessageInput OnSendMessage="SendMessage"
+                          WebSearchActive="@StateContainer.IsWebSearchEnabled"
+                          DeepThinkingActive="@StateContainer.IsDeepThinkingEnabled"
+                          OnToggleWebSearch="ToggleWebSearch"
+                          OnToggleDeepThinking="ToggleDeepThinking"
+                          IsDisabled="@_isMessageInputDisabled" />
+        </div>
+    </div>
+
+    @code {
     [Parameter]
     public string ThreadId { get; set; }
-    
+
     private List<MessageList.MessageModel> _messages = new();
     private string _pageTitle = "Chat";
     private Guid? _threadId;
     private bool _isMessageInputDisabled = false;
-    
-    // Modify OnInitializedAsync in Chat.razor
+
     protected override async Task OnInitializedAsync()
     {
-        // Subscribe to state changes
+        SubscribeToStateEvents();
+        CleanupPlaceholderSessions();
+        await EnsureAgentsAreLoadedAsync();
+        await InitializeThreadAsync();
+
+        await base.OnInitializedAsync();
+    }
+
+    private void SubscribeToStateEvents()
+    {
         StateContainer.MessagesChanged += OnMessagesChanged;
         StateContainer.CurrentAgentChanged += OnCurrentAgentChanged;
         StateContainer.FeatureFlagsChanged += OnFeatureFlagsChanged;
+    }
 
-        // Clean up any stray placeholder sessions (just in case)
+    private void CleanupPlaceholderSessions()
+    {
         var placeholders = StateContainer.ChatSessions.Where(s => s.Id == Guid.Empty).ToList();
         if (placeholders.Count > 1)
         {
-            Console.WriteLine($"WARNING: Found {placeholders.Count} placeholder sessions, cleaning up");
+            Logger.LogWarning("Found {PlaceholderCount} placeholder sessions, cleaning up", placeholders.Count);
             foreach (var extra in placeholders.Skip(1))
             {
                 StateContainer.ChatSessions.Remove(extra);
             }
             StateContainer.NotifyChatSessionsChanged();
         }
+    }
 
-        // Get available agents if needed
-        if (!StateContainer.AvailableAgents.Any())
+    private async Task EnsureAgentsAreLoadedAsync()
+    {
+        if (StateContainer.AvailableAgents.Any())
         {
-            try
-            {
-                await ChatService.GetAvailableAgentsAsync();
-
-                // Auto-select the first agent
-                if (StateContainer.AvailableAgents.Any())
-                {
-                    StateContainer.CurrentAgentId = StateContainer.AvailableAgents.First().Id;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Error loading agents: {ex.Message}");
-
-                // Show error message in UI
-                var errorMessage = new MessageList.MessageModel
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        Content = $"Error loading agents: {ex.Message}",
-                        IsFromUser = false,
-                        Timestamp = DateTime.Now,
-                        Role = AuthorRole.System.Label
-                    };
-
-                _messages.Add(errorMessage);
-            }
+            return;
         }
 
+        try
+        {
+            await ChatService.GetAvailableAgentsAsync();
+
+            // Auto-select the first agent
+            if (StateContainer.AvailableAgents.Any())
+            {
+                StateContainer.CurrentAgentId = StateContainer.AvailableAgents.First().Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading agents");
+            AddSystemMessage($"Error loading agents: {ex.Message}");
+        }
+    }
+
+    private async Task InitializeThreadAsync()
+    {
         // Check if thread ID is provided
         if (!string.IsNullOrEmpty(ThreadId) && Guid.TryParse(ThreadId, out var parsedThreadId))
         {
@@ -115,8 +122,6 @@
             // New chat - ensure we have an "Untitled" entry
             EnsureUntitledChatExists();
         }
-
-        await base.OnInitializedAsync();
     }
 
     private void EnsureUntitledChatExists()
@@ -141,44 +146,48 @@
         _threadId = null;
         StateContainer.CurrentChatSessionId = Guid.Empty;
     }
-    
+
     protected override async Task OnParametersSetAsync()
+    {
+        await HandleThreadParameterAsync();
+        UpdatePageTitle();
+
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task HandleThreadParameterAsync()
     {
         // Check if thread ID is provided
         if (!string.IsNullOrEmpty(ThreadId) && Guid.TryParse(ThreadId, out var parsedThreadId))
         {
             _threadId = parsedThreadId;
             StateContainer.CurrentChatSessionId = parsedThreadId;
-            
+
             // Load thread history
             await LoadThreadHistoryAsync(parsedThreadId);
         }
-        
-        UpdatePageTitle();
-        
-        await base.OnParametersSetAsync();
     }
-    
+
     private async Task LoadThreadHistoryAsync(Guid threadId)
     {
         try
         {
             // Load message history from the service
             var messages = await ChatService.GetMessageHistoryAsync(threadId);
-            
+
             // Store in state container
             StateContainer.SetMessagesForChat(threadId, messages);
-            
+
             // Update messages display
             UpdateMessages();
         }
         catch (Exception ex)
         {
-            // Handle error
-            Console.Error.WriteLine($"Error loading thread history: {ex.Message}");
+            Logger.LogError(ex, "Error loading thread history for {ThreadId}", threadId);
+            AddSystemMessage($"Error loading thread history: {ex.Message}");
         }
     }
-    
+
     private void UpdateMessages()
     {
         var threadId = _threadId ?? StateContainer.CurrentChatSessionId;
@@ -191,23 +200,29 @@
         }
 
         var stateMessages = StateContainer.GetMessagesForChat(threadId);
-        Console.WriteLine($"Updating UI with {stateMessages.Count} messages for thread {threadId}");
+        Logger.LogDebug("Updating UI with {MessageCount} messages for thread {ThreadId}",
+            stateMessages.Count, threadId);
 
-        _messages = stateMessages.Select(m => new MessageList.MessageModel
-            {
-                Id = m.Id.ToString(),
-                Content = m.TextContent,
-                IsFromUser = m.IsFromUser,
-                Timestamp = m.Timestamp,
-                Role = m.Role
-            }).ToList();
+        _messages = stateMessages.Select(MapToMessageModel).ToList();
 
         StateHasChanged();
 
         // Scroll to bottom after update
         _ = ScrollToBottomAsync();
     }
-    
+
+    private MessageList.MessageModel MapToMessageModel(MessageDto message)
+    {
+        return new MessageList.MessageModel
+            {
+                Id = message.Id.ToString(),
+                Content = message.TextContent,
+                IsFromUser = message.IsFromUser,
+                Timestamp = message.Timestamp,
+                Role = message.Role
+            };
+    }
+
     private void UpdatePageTitle()
     {
         if (_threadId == null || _threadId == Guid.Empty)
@@ -233,7 +248,7 @@
             }
         }
     }
-    
+
     private async Task SendMessage(string content)
     {
         if (string.IsNullOrWhiteSpace(content)) return;
@@ -241,18 +256,7 @@
         // Verify that an agent is selected
         if (StateContainer.CurrentAgentId == Guid.Empty)
         {
-            // No agent selected, show a message
-            var warningMessage = new MessageList.MessageModel
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Content = "Please select an agent from the dropdown at the top of the screen before sending a message.",
-                    IsFromUser = false,
-                    Timestamp = DateTime.Now,
-                    Role = AuthorRole.System.Label
-                };
-
-            _messages.Add(warningMessage);
-            await ScrollToBottomAsync();
+            AddSystemMessage("Please select an agent from the dropdown at the top of the screen before sending a message.");
             return;
         }
 
@@ -262,87 +266,114 @@
         try
         {
             // Add message to UI immediately for responsive feel
-            var tempMessage = new MessageList.MessageModel
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Content = content,
-                    IsFromUser = true,
-                    Timestamp = DateTime.Now
-                };
-
-            _messages.Add(tempMessage);
-            await ScrollToBottomAsync();
+            AddUserMessage(content);
 
             // Send via API
-            var agentId = StateContainer.CurrentAgentId;
-            var response = await ChatService.SendMessageAsync(agentId, content, _threadId);
-
-            // Update thread ID if this is a new thread
-            if (!_threadId.HasValue || _threadId == Guid.Empty)
-            {
-                Console.WriteLine($"New thread created: {response.ChatSessionId}");
-
-                // First, remove any placeholder session
-                if (StateContainer.ChatSessions.Any(s => s.Id == Guid.Empty))
-                {
-                    StateContainer.RemoveChatSession(Guid.Empty);
-                }
-
-                // Now create the real session
-                _threadId = response.ChatSessionId;
-                StateContainer.CurrentChatSessionId = response.ChatSessionId;
-
-                var agent = StateContainer.GetCurrentAgent();
-                var title = agent != null ? $"Chat with {agent.Name}" : "Untitled";
-
-                var newSession = new ChatSessionDto
-                    {
-                        Id = response.ChatSessionId,
-                        Title = title,
-                        CreatedAt = DateTime.UtcNow,
-                        LastActivityAt = DateTime.UtcNow,
-                        IsWebSearchEnabled = StateContainer.IsWebSearchEnabled,
-                        IsDeepThinkingEnabled = StateContainer.IsDeepThinkingEnabled
-                    };
-
-                // Use our controlled method to add the session
-                StateContainer.AddChatSession(newSession);
-
-                // Update navigation to reflect the new thread ID
-                Navigation.NavigateTo($"/chat/{response.ChatSessionId}", replace: true);
-
-                // Ensure messages are updated for the new thread
-                UpdateMessages();
-            }
+            await SendMessageToApiAsync(content);
         }
         catch (Exception ex)
         {
-            // Handle error
-            Console.Error.WriteLine($"Error sending message: {ex.Message}");
-            var errorMessage = new MessageList.MessageModel
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Content = $"Error sending message: {ex.Message}",
-                    IsFromUser = false,
-                    Timestamp = DateTime.Now,
-                    Role = AuthorRole.System.Label
-                };
-
-            _messages.Add(errorMessage);
-            await ScrollToBottomAsync();
+            Logger.LogError(ex, "Error sending message");
+            AddSystemMessage($"Error sending message: {ex.Message}");
         }
         finally
         {
             _isMessageInputDisabled = false;
         }
     }
-    
+
+    private async Task SendMessageToApiAsync(string content)
+    {
+        var agentId = StateContainer.CurrentAgentId;
+        var response = await ChatService.SendMessageAsync(agentId, content, _threadId);
+
+        // Update thread ID if this is a new thread
+        if (!_threadId.HasValue || _threadId == Guid.Empty)
+        {
+            await HandleNewThreadCreationAsync(response.ChatSessionId);
+        }
+    }
+
+    private async Task HandleNewThreadCreationAsync(Guid newThreadId)
+    {
+        Logger.LogInformation("New thread created: {ThreadId}", newThreadId);
+
+        // First, remove any placeholder session
+        if (StateContainer.ChatSessions.Any(s => s.Id == Guid.Empty))
+        {
+            StateContainer.RemoveChatSession(Guid.Empty);
+        }
+
+        // Now create the real session
+        _threadId = newThreadId;
+        StateContainer.CurrentChatSessionId = newThreadId;
+
+        CreateAndAddChatSession(newThreadId);
+
+        // Clear local messages to ensure we only display official messages from API
+        _messages.Clear();
+
+        // Update navigation to reflect the new thread ID
+        Navigation.NavigateTo($"/chat/{newThreadId}", replace: true);
+
+        // Ensure messages are updated for the new thread
+        UpdateMessages();
+    }
+
+    private void CreateAndAddChatSession(Guid threadId)
+    {
+        var agent = StateContainer.GetCurrentAgent();
+        var title = agent != null ? $"Chat with {agent.Name}" : "Untitled";
+
+        var newSession = new ChatSessionDto
+            {
+                Id = threadId,
+                Title = title,
+                CreatedAt = DateTime.UtcNow,
+                LastActivityAt = DateTime.UtcNow,
+                IsWebSearchEnabled = StateContainer.IsWebSearchEnabled,
+                IsDeepThinkingEnabled = StateContainer.IsDeepThinkingEnabled
+            };
+
+        // Use our controlled method to add the session
+        StateContainer.AddChatSession(newSession);
+    }
+
+    private void AddUserMessage(string content)
+    {
+        var message = new MessageList.MessageModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                Content = content,
+                IsFromUser = true,
+                Timestamp = DateTime.Now
+            };
+
+        _messages.Add(message);
+        _ = ScrollToBottomAsync();
+    }
+
+    private void AddSystemMessage(string content)
+    {
+        var message = new MessageList.MessageModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                Content = content,
+                IsFromUser = false,
+                Timestamp = DateTime.Now,
+                Role = AuthorRole.System.Label
+            };
+
+        _messages.Add(message);
+        _ = ScrollToBottomAsync();
+    }
+
     private async Task ScrollToBottomAsync()
     {
         await Task.Delay(50); // Small delay to ensure rendering complete
         await JS.InvokeVoidAsync("scrollToBottom", ".messages-container");
     }
-    
+
     private void OnMessagesChanged(Guid chatId)
     {
         var threadId = _threadId ?? StateContainer.CurrentChatSessionId;
@@ -350,11 +381,11 @@
         // Handle both specific thread messages and messages for new threads
         if (chatId == threadId || (threadId == Guid.Empty && !_threadId.HasValue))
         {
-            Console.WriteLine($"Messages changed for thread {chatId}, updating UI");
+            Logger.LogDebug("Messages changed for thread {ThreadId}, updating UI", chatId);
             UpdateMessages();
         }
     }
-    
+
     private void OnCurrentAgentChanged()
     {
         if (!_threadId.HasValue || _threadId == Guid.Empty)
@@ -365,30 +396,35 @@
         else
         {
             // For existing chats, we should start a new chat when agent changes
-            _threadId = null;
-            StateContainer.CurrentChatSessionId = Guid.Empty;
-            _messages.Clear();
-            EnsureUntitledChatExists();
+            StartNewChat();
         }
 
         StateHasChanged();
     }
-    
+
+    private void StartNewChat()
+    {
+        _threadId = null;
+        StateContainer.CurrentChatSessionId = Guid.Empty;
+        _messages.Clear();
+        EnsureUntitledChatExists();
+    }
+
     private void OnFeatureFlagsChanged()
     {
         StateHasChanged();
     }
-    
+
     private void ToggleWebSearch()
     {
         StateContainer.ToggleWebSearch();
     }
-    
+
     private void ToggleDeepThinking()
     {
         StateContainer.ToggleDeepThinking();
     }
-    
+
     public void Dispose()
     {
         // Unsubscribe from events

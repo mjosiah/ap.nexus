@@ -9,11 +9,11 @@ namespace ap.nexus.agents.application.Services
 {
     public class ThreadService : IThreadService
     {
-        private readonly IGenericRepository<ChatThread> _chatThreadRepository;
+        private readonly IGenericRepository<ChatThreadEntity> _chatThreadRepository;
         private readonly IGenericRepository<AgentEntity> _agentRepository;
         private readonly ILogger<ThreadService> _logger;
 
-        public ThreadService(IGenericRepository<ChatThread> chatThreadRepository, IGenericRepository<AgentEntity> agentRepository, ILogger<ThreadService> logger)
+        public ThreadService(IGenericRepository<ChatThreadEntity> chatThreadRepository, IGenericRepository<AgentEntity> agentRepository, ILogger<ThreadService> logger)
         {
             _chatThreadRepository = chatThreadRepository;
             _agentRepository = agentRepository;
@@ -35,7 +35,7 @@ namespace ap.nexus.agents.application.Services
                     throw new Exception($"Agent with Id {request.AgentId} not found."); 
                 }
 
-                var chatThread = new ChatThread
+                var chatThread = new ChatThreadEntity
                 {
                     AgentId = agent.Id,
                     Title = request.Title,
