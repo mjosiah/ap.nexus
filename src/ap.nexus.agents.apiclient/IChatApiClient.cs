@@ -10,5 +10,8 @@ namespace ap.nexus.agents.apiclient
 
         [Get("/agents")]
         Task<api.contracts.PagedResultDto<AgentDto>> GetAgentsAsync([Query] api.contracts.PagedAndSortedResultRequestDto request);
+
+        [Get("/threads")]
+        Task<api.contracts.PagedResultDto<ChatThreadDto>> GetUserThreadsAsync([Query] GetUserThreadsRequest request);
     }
 }

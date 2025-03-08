@@ -130,7 +130,7 @@ namespace ap.nexus.agents.IntegrationTests
         }
 
         // Helper method to create a test chat thread using the ChatHistoryManager.
-        private async Task<ChatThreadDto> CreateTestChatThreadAsync(string title)
+        private async Task<ChatThread> CreateTestChatThreadAsync(string title)
         {
             var agentId = _context.GetFirstAgentId();
             var request = new CreateChatThreadRequest
@@ -209,7 +209,7 @@ namespace ap.nexus.agents.IntegrationTests
 
 
         // Helper method to get a chat thread entity by Id.
-        private async Task<ChatThread?> GetTestChatThreadByIdAsync(Guid Id)
+        private async Task<ChatThreadEntity?> GetTestChatThreadByIdAsync(Guid Id)
         {
             return await _context.ChatThreads.FirstOrDefaultAsync(t => t.Id == Id);
         }

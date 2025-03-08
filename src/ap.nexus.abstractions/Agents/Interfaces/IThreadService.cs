@@ -4,11 +4,11 @@ namespace ap.nexus.abstractions.Agents.Interfaces
 {
     public interface IThreadService
     {
-        Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request);
+        Task<ChatThread> CreateThreadAsync(CreateChatThreadRequest request);
 
-        Task<ChatThreadDto?> GetThreadByIdAsync(Guid Id);
+        Task<ChatThread?> GetThreadByIdAsync(Guid Id);
 
-        Task<PagedResult<ChatThreadDto>> GetAllThreadsAsync(PagedAndSortedResultRequest input);
+        Task<PagedResult<ChatThread>> GetAllThreadsAsync(PagedAndSortedResultRequest input);
         Task DeleteThreadByIdAsync(Guid Id);
         Task<bool> ThreadIdExistsAsync(Guid Id);
 

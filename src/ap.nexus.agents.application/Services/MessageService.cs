@@ -13,9 +13,9 @@ namespace ap.nexus.agents.application.Services
     {
         private readonly IGenericRepository<ChatMessage> _messageRepository;
         private readonly ILogger<MessageService> _logger;
-        private readonly IGenericRepository<ChatThread> _chatThreadRepository;
+        private readonly IGenericRepository<ChatThreadEntity> _chatThreadRepository;
 
-        public MessageService(IGenericRepository<ChatMessage> messageRepository, ILogger<MessageService> logger, IGenericRepository<ChatThread> chatThreadRepository)
+        public MessageService(IGenericRepository<ChatMessage> messageRepository, ILogger<MessageService> logger, IGenericRepository<ChatThreadEntity> chatThreadRepository)
         {
             _messageRepository = messageRepository;
             _logger = logger;

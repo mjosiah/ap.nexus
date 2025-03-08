@@ -24,7 +24,7 @@ namespace ap.nexus.agents.application.Services
         /// Creates a new chat thread based on the provided request.
         /// Generates a new Id, saves the thread, and returns a ChatThreadDto.
         /// </summary>
-        public async Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request)
+        public async Task<ChatThread> CreateThreadAsync(CreateChatThreadRequest request)
         {
             try
             {
@@ -47,7 +47,7 @@ namespace ap.nexus.agents.application.Services
 
                 _logger.LogInformation("Created chat thread with Id {Id} successfully.", chatThread.Id);
 
-                return new ChatThreadDto
+                return new ChatThread
                 {
                     Id = chatThread.Id,
                     Title = chatThread.Title,
@@ -66,7 +66,7 @@ namespace ap.nexus.agents.application.Services
         /// Retrieves a chat thread by its Id.
         /// Returns null if not found.
         /// </summary>
-        public async Task<ChatThreadDto?> GetThreadByIdAsync(Guid Id)
+        public async Task<ChatThread?> GetThreadByIdAsync(Guid Id)
         {
             try
             {
@@ -83,7 +83,7 @@ namespace ap.nexus.agents.application.Services
 
                 _logger.LogInformation("Retrieved chat thread with Id {Id} successfully.", Id);
 
-                return new ChatThreadDto
+                return new ChatThread
                 {
                     Id = chatThread.Id,
                     Title = chatThread.Title,
@@ -101,7 +101,7 @@ namespace ap.nexus.agents.application.Services
         /// <summary>
         /// Retrieves all chat threads in a paged format.
         /// </summary>
-        public async Task<PagedResult<ChatThreadDto>> GetAllThreadsAsync(PagedAndSortedResultRequest input)
+        public async Task<PagedResult<ChatThread>> GetAllThreadsAsync(PagedAndSortedResultRequest input)
         {
             try
             {
@@ -124,7 +124,7 @@ namespace ap.nexus.agents.application.Services
                     .Take(input.MaxResultCount)
                     .ToListAsync();
 
-                var threadDtos = threads.Select(ct => new ChatThreadDto
+                var threadDtos = threads.Select(ct => new ChatThread
                 {
                     Id = ct.Id,
                     Title = ct.Title,
@@ -134,7 +134,7 @@ namespace ap.nexus.agents.application.Services
 
                 _logger.LogInformation("Retrieved {Count} chat threads.", threadDtos.Count);
 
-                return new PagedResult<ChatThreadDto>
+                return new PagedResult<ChatThread>
                 {
                     TotalCount = totalCount,
                     Items = threadDtos

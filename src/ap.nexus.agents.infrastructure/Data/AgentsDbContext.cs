@@ -1,6 +1,6 @@
 ﻿using ap.nexus.agents.domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using ChatThread = ap.nexus.agents.domain.Entities.ChatThread;
+using ChatThreadEntity = ap.nexus.agents.domain.Entities.ChatThreadEntity;
 
 namespace ap.nexus.agents.infrastructure.Data
 {
@@ -12,7 +12,7 @@ namespace ap.nexus.agents.infrastructure.Data
         }
 
         public DbSet<AgentEntity> Agents { get; set; }
-        public DbSet<ChatThread> ChatThreads { get; set; }
+        public DbSet<ChatThreadEntity> ChatThreads { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

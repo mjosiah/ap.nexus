@@ -167,7 +167,7 @@ namespace ap.nexus.agents.IntegrationTests
         }
 
         // Helper method to create a chat thread
-        private async Task<ChatThreadDto> CreateTestChatThreadAsync(string title)
+        private async Task<ChatThread> CreateTestChatThreadAsync(string title)
         {
             var agentId = _context.GetFirstAgentId();
             var request = new CreateChatThreadRequest
@@ -180,7 +180,7 @@ namespace ap.nexus.agents.IntegrationTests
         }
 
         // Helper method to add a user message to a chat thread
-        private async Task AddTestUserMessageToThreadAsync(ChatThreadDto thread, string message)
+        private async Task AddTestUserMessageToThreadAsync(ChatThread thread, string message)
         {
             var messageContent = new ChatMessageContent(AuthorRole.User, message);
             await _chatHistoryManager.AddMessageAsync(thread.Id, messageContent);

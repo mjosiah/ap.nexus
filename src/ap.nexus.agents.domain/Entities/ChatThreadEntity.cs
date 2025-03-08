@@ -2,7 +2,7 @@
 
 namespace ap.nexus.agents.domain.Entities
 {
-    public class ChatThread : AuditableEntity
+    public class ChatThreadEntity : AuditableEntity
     {
 
         public string Title { get; set; } = string.Empty;

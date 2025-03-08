@@ -19,7 +19,7 @@ namespace ap.nexus.agents.domain.Entities
         public string Source { get; set; } = string.Empty; // Source of the message
 
         // Navigation properties
-        public virtual ChatThread ChatThread { get; set; }
+        public virtual ChatThreadEntity ChatThread { get; set; }
 
         public ChatMessageContentItemCollection GetChatMessageContentItems() => System.Text.Json.JsonSerializer.Deserialize<ChatMessageContentItemCollection>(Items) ?? new();
     }

@@ -45,6 +45,13 @@ namespace ap.nexus.agents.api.Endpoints
                 {
                     var filteredThreads = pagedResult.Items
                         .Where(t => t.UserId == req.UserId)
+                        .Select(selector: t => new ChatThreadDto
+                        {
+                            Id = t.Id,
+                            Title = t.Title,
+                            AgentId = t.AgentId,
+                            UserId = t.UserId
+                        })
                         .ToList();
 
                     var newPagedResult = new PagedResultDto<ChatThreadDto>
@@ -58,9 +65,18 @@ namespace ap.nexus.agents.api.Endpoints
                 }
 
                 // Return all threads if no userId filter
+                var threads = pagedResult.Items
+                        .Select(selector: t => new ChatThreadDto
+                        {
+                            Id = t.Id,
+                            Title = t.Title,
+                            AgentId = t.AgentId,
+                            UserId = t.UserId
+                        })
+                        .ToList();
                 var result = new PagedResultDto<ChatThreadDto>
                 {
-                    Items = pagedResult.Items.ToList(),
+                    Items = threads,
                     TotalCount = pagedResult.TotalCount
                 };
 
@@ -77,10 +93,5 @@ namespace ap.nexus.agents.api.Endpoints
                 ThrowIfAnyErrors();
             }
         }
-    }
-
-    public class GetUserThreadsRequest : PagedAndSortedResultRequestDto
-    {
-        public string? UserId { get; set; }
     }
 }

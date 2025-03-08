@@ -14,7 +14,7 @@ namespace ap.nexus.agents.application.Services.ChatServices
     /// </summary>
     public interface IChatHistoryManager
     {
-        Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request);
+        Task<ChatThread> CreateThreadAsync(CreateChatThreadRequest request);
         Task<ChatHistory?> GetChatHistoryByIdAsync(Guid Id);
         Task<bool> ThreadExists(Guid Id);
         Task AddSystemMessageAsync(Guid Id, ChatMessageContent chatMessage);
@@ -47,10 +47,10 @@ namespace ap.nexus.agents.application.Services.ChatServices
             _memoryStore = memoryStore;
         }
 
-        public async Task<ChatThreadDto> CreateThreadAsync(CreateChatThreadRequest request)
+        public async Task<ChatThread> CreateThreadAsync(CreateChatThreadRequest request)
         {
 
-            ChatThreadDto threadDto = await _threadService.CreateThreadAsync(request);
+            ChatThread threadDto = await _threadService.CreateThreadAsync(request);
             var chatHistory = new ChatHistory();
 
             await _memoryStore.SetChatHistoryAsync(threadDto.Id, chatHistory);
@@ -70,7 +70,7 @@ namespace ap.nexus.agents.application.Services.ChatServices
 
             _logger.LogWarning("Chat history for thread {Id} not found in memory store. Attempting to load from persistence.", Id);
 
-            ChatThreadDto? threadDto = await _threadService.GetThreadByIdAsync(Id);
+            ChatThread? threadDto = await _threadService.GetThreadByIdAsync(Id);
             if (threadDto == null)
             {
                 _logger.LogWarning("Thread {Id} was not found in the database.", Id);
