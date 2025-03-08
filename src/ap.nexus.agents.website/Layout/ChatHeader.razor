@@ -4,17 +4,27 @@
 @inject IJSRuntime JS
 
 <div class="chat-header">
+    <!-- Left section with hamburger menu and agent selector -->
     <div class="chat-header-left">
         <button class="btn btn-link text-light" @onclick="ToggleSidebar">
             <i class="bi bi-list fs-4"></i>
         </button>
-        
+
+        <div class="agent-selector-wrapper ms-2" @ref="_agentSelectorRef">
+            <AgentSelector Agents="StateContainer.AvailableAgents"
+                           SelectedAgentId="StateContainer.CurrentAgentId"
+                           OnAgentSelected="SelectAgent" />
+        </div>
+    </div>
+
+    <!-- Chat Title - In center -->
+    <div class="chat-header-center">
         @if (_isEditing)
         {
-            <input @ref="_titleInput" 
+            <input @ref="_titleInput"
                    class="form-control bg-dark text-light border-secondary"
                    style="max-width: 250px;"
-                   value="@ChatTitle" 
+                   value="@ChatTitle"
                    @onblur="SaveTitle"
                    @onkeydown="HandleTitleKeyDown" />
         }
@@ -26,22 +36,14 @@
             </div>
         }
     </div>
-    
-    <!-- Agent Selector - Make visible and ensure it's rendering -->
-    <div class="chat-header-center">
-        <div class="agent-selector-wrapper" @ref="_agentSelectorRef">
-            <AgentSelector Agents="StateContainer.AvailableAgents" 
-                        SelectedAgentId="StateContainer.CurrentAgentId"
-                        OnAgentSelected="SelectAgent" />
-        </div>
-    </div>
-    
-    <div class="chat-header-actions">
+
+    <!-- Right section with actions dropdown -->
+    <div class="chat-header-right">
         <div class="dropdown">
-            <button class="btn btn-link text-light dropdown-toggle" 
-                    type="button" 
-                    id="chatOptionsDropdown" 
-                    data-bs-toggle="dropdown" 
+            <button class="btn btn-link text-light dropdown-toggle"
+                    type="button"
+                    id="chatOptionsDropdown"
+                    data-bs-toggle="dropdown"
                     aria-expanded="false">
                 <i class="bi bi-three-dots-vertical"></i>
             </button>
@@ -58,33 +60,33 @@
 @code {
     [Parameter]
     public string ChatTitle { get; set; } = "Untitled Chat";
-    
+
     [Parameter]
     public EventCallback<string> ChatTitleChanged { get; set; }
-    
+
     [Parameter]
     public EventCallback OnToggleSidebar { get; set; }
-    
+
     [Parameter]
     public EventCallback OnNewChat { get; set; }
-    
+
     [Parameter]
     public EventCallback OnExportChat { get; set; }
-    
+
     [Parameter]
     public EventCallback OnDeleteChat { get; set; }
-    
+
     private bool _isEditing = false;
     private ElementReference _titleInput;
     private ElementReference _agentSelectorRef;
-    
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             // Add a check to debug the agent selector rendering
             await JS.InvokeVoidAsync("console.log", "Agent selector container:", _agentSelectorRef);
-            
+
             // Make sure at least one agent is selected
             if (StateContainer.AvailableAgents.Any() && StateContainer.CurrentAgentId == Guid.Empty)
             {
@@ -93,24 +95,24 @@
             }
         }
     }
-    
+
     private async Task ToggleSidebar()
     {
         await OnToggleSidebar.InvokeAsync();
     }
-    
+
     private void StartEditing()
     {
         _isEditing = true;
         StateHasChanged();
-        
+
         // Focus the input in the next render cycle
-        _ = Task.Delay(10).ContinueWith(_ => InvokeAsync(async () => 
+        _ = Task.Delay(10).ContinueWith(_ => InvokeAsync(async () =>
         {
             await _titleInput.FocusAsync();
         }));
     }
-    
+
     private async Task SaveTitle()
     {
         _isEditing = false;
@@ -118,7 +120,7 @@
         // For simplicity, we're not changing the actual value here
         await ChatTitleChanged.InvokeAsync(ChatTitle);
     }
-    
+
     private async Task HandleTitleKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -131,7 +133,7 @@
             StateHasChanged();
         }
     }
-    
+
     private async Task SelectAgent(Guid agentId)
     {
         if (StateContainer.CurrentAgentId != agentId)
@@ -142,17 +144,17 @@
             // OnCurrentAgentChanged will handle starting a new conversation
         }
     }
-    
+
     private async Task NewChat()
     {
         await OnNewChat.InvokeAsync();
     }
-    
+
     private async Task ExportChat()
     {
         await OnExportChat.InvokeAsync();
     }
-    
+
     private async Task DeleteChat()
     {
         var confirmed = await JS.InvokeAsync<bool>("confirm", "Are you sure you want to delete this chat?");

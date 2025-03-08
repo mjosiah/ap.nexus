@@ -94,6 +94,32 @@ namespace ap.nexus.agents.website.Services
             }
         }
 
+        public void AddChatSession(ChatSessionDto session)
+        {
+            // Check for duplicates first
+            var existing = ChatSessions.FirstOrDefault(s => s.Id == session.Id);
+            if (existing != null)
+            {
+                Console.WriteLine($"WARNING: Attempted to add duplicate chat session with ID {session.Id}, Title: {session.Title}");
+                return; // Don't add duplicates
+            }
+
+            Console.WriteLine($"Adding chat session: {session.Id}, Title: {session.Title}");
+            ChatSessions.Add(session);
+            NotifyChatSessionsChanged();
+        }
+
+        public void RemoveChatSession(Guid sessionId)
+        {
+            var session = ChatSessions.FirstOrDefault(s => s.Id == sessionId);
+            if (session != null)
+            {
+                Console.WriteLine($"Removing chat session: {session.Id}, Title: {session.Title}");
+                ChatSessions.Remove(session);
+                NotifyChatSessionsChanged();
+            }
+        }
+
         // Event to notify subscribers when chat sessions change
         public event Action ChatSessionsChanged;
 
