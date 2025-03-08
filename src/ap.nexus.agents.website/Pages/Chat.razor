@@ -58,6 +58,18 @@
         StateContainer.CurrentAgentChanged += OnCurrentAgentChanged;
         StateContainer.FeatureFlagsChanged += OnFeatureFlagsChanged;
 
+        // Clean up any stray placeholder sessions (just in case)
+        var placeholders = StateContainer.ChatSessions.Where(s => s.Id == Guid.Empty).ToList();
+        if (placeholders.Count > 1)
+        {
+            Console.WriteLine($"WARNING: Found {placeholders.Count} placeholder sessions, cleaning up");
+            foreach (var extra in placeholders.Skip(1))
+            {
+                StateContainer.ChatSessions.Remove(extra);
+            }
+            StateContainer.NotifyChatSessionsChanged();
+        }
+
         // Get available agents if needed
         if (!StateContainer.AvailableAgents.Any())
         {
@@ -115,7 +127,7 @@
         {
             var newSession = new ChatSessionDto
                 {
-                    Id = Guid.Empty, // Will be replaced with real ID after first message
+                    Id = Guid.Empty,
                     Title = "Untitled",
                     CreatedAt = DateTime.UtcNow,
                     LastActivityAt = DateTime.UtcNow,
@@ -123,8 +135,7 @@
                     IsDeepThinkingEnabled = StateContainer.IsDeepThinkingEnabled
                 };
 
-            StateContainer.ChatSessions.Add(newSession);
-            StateContainer.NotifyChatSessionsChanged();
+            StateContainer.AddChatSession(newSession);
         }
 
         _threadId = null;
@@ -230,7 +241,7 @@
         // Verify that an agent is selected
         if (StateContainer.CurrentAgentId == Guid.Empty)
         {
-            // No agent selected, show a message to select one
+            // No agent selected, show a message
             var warningMessage = new MessageList.MessageModel
                 {
                     Id = Guid.NewGuid().ToString(),
@@ -270,43 +281,38 @@
             if (!_threadId.HasValue || _threadId == Guid.Empty)
             {
                 Console.WriteLine($"New thread created: {response.ChatSessionId}");
-                _threadId = response.ChatSessionId;
 
-                // Important: Remove any placeholder BEFORE setting the new current chat session ID
-                var placeholder = StateContainer.ChatSessions.FirstOrDefault(s => s.Id == Guid.Empty);
-                if (placeholder != null)
+                // First, remove any placeholder session
+                if (StateContainer.ChatSessions.Any(s => s.Id == Guid.Empty))
                 {
-                    StateContainer.ChatSessions.Remove(placeholder);
-                    // Notify after removal
-                    StateContainer.NotifyChatSessionsChanged();
+                    StateContainer.RemoveChatSession(Guid.Empty);
                 }
 
-                // Now set the current chat session ID
+                // Now create the real session
+                _threadId = response.ChatSessionId;
                 StateContainer.CurrentChatSessionId = response.ChatSessionId;
 
-                // Create a new chat session with proper title
                 var agent = StateContainer.GetCurrentAgent();
-                if (agent != null)
-                {
-                    var newSession = new ChatSessionDto
-                        {
-                            Id = response.ChatSessionId,
-                            Title = $"Chat with {agent.Name}",
-                            CreatedAt = DateTime.UtcNow,
-                            LastActivityAt = DateTime.UtcNow,
-                            IsWebSearchEnabled = StateContainer.IsWebSearchEnabled,
-                            IsDeepThinkingEnabled = StateContainer.IsDeepThinkingEnabled
-                        };
+                var title = agent != null ? $"Chat with {agent.Name}" : "Untitled";
 
-                    StateContainer.ChatSessions.Add(newSession);
-                    StateContainer.NotifyChatSessionsChanged();
-                }
+                var newSession = new ChatSessionDto
+                    {
+                        Id = response.ChatSessionId,
+                        Title = title,
+                        CreatedAt = DateTime.UtcNow,
+                        LastActivityAt = DateTime.UtcNow,
+                        IsWebSearchEnabled = StateContainer.IsWebSearchEnabled,
+                        IsDeepThinkingEnabled = StateContainer.IsDeepThinkingEnabled
+                    };
 
-                // Update messages for the new thread
-                UpdateMessages();
+                // Use our controlled method to add the session
+                StateContainer.AddChatSession(newSession);
 
                 // Update navigation to reflect the new thread ID
                 Navigation.NavigateTo($"/chat/{response.ChatSessionId}", replace: true);
+
+                // Ensure messages are updated for the new thread
+                UpdateMessages();
             }
         }
         catch (Exception ex)

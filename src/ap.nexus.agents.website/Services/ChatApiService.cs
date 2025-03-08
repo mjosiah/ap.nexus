@@ -241,7 +241,7 @@ namespace ap.nexus.agents.website.Services
         /// </summary>
         private async Task UpdateChatSessionAsync(Guid threadId, Guid agentId)
         {
-            // Avoid duplicates - check if this thread already exists
+            // Check if the chat session exists
             var existingSession = _stateContainer.ChatSessions.FirstOrDefault(s => s.Id == threadId);
 
             if (existingSession == null)
@@ -249,6 +249,12 @@ namespace ap.nexus.agents.website.Services
                 // Try to get agent name
                 var agent = _stateContainer.AvailableAgents.FirstOrDefault(a => a.Id == agentId);
                 var title = agent != null ? $"Chat with {agent.Name}" : "Untitled";
+
+                // First, remove any placeholder session
+                if (_stateContainer.ChatSessions.Any(s => s.Id == Guid.Empty))
+                {
+                    _stateContainer.RemoveChatSession(Guid.Empty);
+                }
 
                 // Create a new chat session
                 var newSession = new ChatSessionDto
@@ -261,15 +267,8 @@ namespace ap.nexus.agents.website.Services
                     IsDeepThinkingEnabled = _stateContainer.IsDeepThinkingEnabled
                 };
 
-                // IMPORTANT: Remove any placeholder session BEFORE adding the new one
-                var placeholder = _stateContainer.ChatSessions.FirstOrDefault(s => s.Id == Guid.Empty);
-                if (placeholder != null)
-                {
-                    _stateContainer.ChatSessions.Remove(placeholder);
-                }
-
-                _stateContainer.ChatSessions.Add(newSession);
-                _stateContainer.NotifyChatSessionsChanged();
+                // Use controlled method
+                _stateContainer.AddChatSession(newSession);
             }
             else
             {
