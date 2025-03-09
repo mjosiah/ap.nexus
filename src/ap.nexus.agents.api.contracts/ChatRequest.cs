@@ -10,6 +10,7 @@ namespace ap.nexus.agents.api.contracts
         public Guid? ThreadId { get; set; }
         [Required]
         public ChatMessageContent Message { get; set; }
+        public bool UseStreaming { get; set; } = false;
     }
 
     public class ChatResponse
